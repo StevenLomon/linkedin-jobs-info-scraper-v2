@@ -334,6 +334,10 @@ def generate_excel(dataframe, result_name):
     output.seek(0)
     return output
 
+def convert_seconds_to_minutes_and_seconds(seconds):
+    min, sec = divmod(seconds, 60)
+    return '%02d:%02d' % (min, sec)
+
 ## STREAMLIT CODE
 st.title('LinkedIn Job search URL to CSV Generator V2')
 st.markdown('Working on having people extracting from the company People page working 🛠️')
@@ -367,7 +371,8 @@ if st.button('Generate File'):
             if len(max_results_to_check) != 0 and int(max_results_to_check) < total_number_of_results:
                 total_number_of_results = int(max_results_to_check)
             print(f"Attempting to scrape info from {total_number_of_results} job ads")
-            st.markdown(f"Attempting to scrape info from {total_number_of_results} job ads")
+            st.markdown(f"Attempting to scrape info from {total_number_of_results} job ads. It takes approximately just under 1 second per job ad!")
+            st.markdown(f"Meaning this will take around {convert_seconds_to_minutes_and_seconds(total_number_of_results)} minutes")
 
             batches = split_total_into_batches_of_100(total_number_of_results)
             print(f"Splitting {total_number_of_results} in batches: {batches}")
@@ -376,7 +381,7 @@ if st.button('Generate File'):
             end_time = time.time()
 
             print("Done!")
-            st.text(f"Done! Scraped {total_number_of_results} products in {end_time - start_time} seconds")
+            st.text(f"Done! Scraped {total_number_of_results} products in {convert_seconds_to_minutes_and_seconds(end_time - start_time)} minutes")
             scraped_data_df = turn_grouped_results_into_df(results)
             # st.text(f"Total job posting ids found in the request: {total_number_of_results}\nTotal fetched succesfully: {total_fetched}\nTotal unique ids: {total_unique}\nTotal with hiring team available: {total_hiring_team}")
 
