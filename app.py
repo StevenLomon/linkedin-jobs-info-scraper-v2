@@ -372,7 +372,7 @@ if st.button('Generate File'):
             if len(max_results_to_check) != 0 and int(max_results_to_check) < total_number_of_results:
                 total_number_of_results = int(max_results_to_check)
             print(f"Attempting to scrape info from {total_number_of_results} job ads")
-            st.markdown(f"Attempting to scrape info from {total_number_of_results} job ads. It takes approximately 3.5 seconds per job ad, meaning this will take around {convert_seconds_to_minutes_and_seconds(total_number_of_results*3.5)} minutes but potentially faster")
+            st.markdown(f"Attempting to scrape info from {total_number_of_results} job ads. It takes approximately 3 seconds per job ad, meaning this will take around {convert_seconds_to_minutes_and_seconds(total_number_of_results*3)} minutes but potentially faster")
 
             batches = split_total_into_batches_of_100(total_number_of_results)
             print(f"Splitting {total_number_of_results} in batches: {batches}")
