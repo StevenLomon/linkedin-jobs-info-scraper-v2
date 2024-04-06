@@ -377,8 +377,14 @@ if st.button('Generera fil'):
             if total_number_of_results is None:
                 st.error("Could not fetch total amount of ads. Try again in a bit")
 
-            if len(max_results_to_check) != 0 and int(max_results_to_check) < total_number_of_results:
-                total_number_of_results = int(max_results_to_check)
+            if max_results_to_check.strip():  # Checks if input is not just whitespace
+                try:
+                    max_results = int(max_results_to_check)
+                    if max_results < total_number_of_results:
+                        total_number_of_results = max_results
+                except ValueError:
+                    st.error("Please enter a valid number or leave blank for all jobs.")
+                    
             print(f"Attempting to scrape info from {total_number_of_results} job ads")
             st.markdown(f"Tar info från {total_number_of_results} jobbannonser. Det tar ca 2.5 seconds per jobbannons, så detta kommer ta omkring {convert_seconds_to_minutes_and_seconds(total_number_of_results*2.5)} minuter men potentiellt snabbare!")
 
