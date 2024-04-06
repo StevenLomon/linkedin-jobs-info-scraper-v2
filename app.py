@@ -349,25 +349,25 @@ def convert_seconds_to_minutes_and_seconds(seconds):
 
 ## STREAMLIT CODE
 st.title('LinkedIn Job search URL to CSV Generator V2')
-st.markdown('Please contact me if you run into any bugs or errors! :)')
+st.markdown('Vänligen kontakta mig ifall det dyker upp buggar eller errors! :)')
 st.markdown(f'Sample URL: https://www.linkedin.com/jobs/search/?currentJobId=3836861341&keywords=sem%20seo&origin=SWITCH_SEARCH_VERTICAL')
 
 # User input for LinkedIn URL
-linkedin_job_url = st.text_input('Enter URL from the LinkedIn Job search:', '')
-result_name = st.text_input('Enter a name for the resulting csv/Excel file:', '')
-max_results_to_check = st.text_input('Enter maximum amounts of jobs to check (leave blank to scrape all available jobs for the query):', '')
-st.write("If there is no Hiring Team available and the company has less than or equal to")
+linkedin_job_url = st.text_input('Skriv in URL:en från LinkedIn Jobs-sökningen:', '')
+result_name = st.text_input('Namn på den resulterande csv/Excel filen:', '')
+max_results_to_check = st.text_input('Max antal jobbannonser att ta data från (lämna blank för alla jobb i sökningen):', '')
+st.write("Om det inte finns en Hiring Team och företaget har mindre än eller lika med")
 employee_threshold = st.number_input("Employee Threshold", min_value=1, value=100, step=1, format="%d", label_visibility="collapsed")
-under_threshold_keywords = st.text_input('employees, search the company for (separate keywords with comma):', '')
-over_threshold_keywords = st.text_input('If it has more, search the company for: (separate keywords with comma)', '')
-max_people_per_company = st.number_input('Max amount of people to scrape per company if no Hiring Team:', min_value=1, value=2, step=1, format="%d")
+under_threshold_keywords = st.text_input('anställda, sök företaget efter (separera keywords med kommatecken):', '')
+over_threshold_keywords = st.text_input('Om det har mer, sök företaget efter: (separera keywords med kommatecken)', '')
+max_people_per_company = st.number_input('Max antal anställda per företag som ska med i resultatet om det inte finns Hiring Team:', min_value=1, value=2, step=1, format="%d")
 
 # Radio button to choose the file format
-file_format = st.radio("Choose the file format for download:", ('csv', 'xlsx'))
+file_format = st.radio("Välj filformat:", ('csv', 'xlsx'))
 
 # Button to the result file
-if st.button('Generate File'):
-    with st.spinner('Generating file, hold on'):
+if st.button('Generera fil'):
+    with st.spinner('Genererar fil, ett ögonblick'):
         if linkedin_job_url:
             keyword_search = re.search(r'keywords=([^&]+)', linkedin_job_url)
             keyword = keyword_search.group(1) if keyword_search else None
@@ -380,7 +380,7 @@ if st.button('Generate File'):
             if len(max_results_to_check) != 0 and int(max_results_to_check) < total_number_of_results:
                 total_number_of_results = int(max_results_to_check)
             print(f"Attempting to scrape info from {total_number_of_results} job ads")
-            st.markdown(f"Attempting to scrape info from {total_number_of_results} job ads. It takes approximately 2.5 seconds per job ad, meaning this will take around {convert_seconds_to_minutes_and_seconds(total_number_of_results*2.5)} minutes but potentially faster!")
+            st.markdown(f"Tar info från {total_number_of_results} jobbannonser. Det tar ca 2.5 seconds per jobbannons, så detta kommer ta omkring {convert_seconds_to_minutes_and_seconds(total_number_of_results*2.5)} minuter men potentiellt snabbare!")
 
             batches = split_total_into_batches_of_100(total_number_of_results)
             print(f"Splitting {total_number_of_results} in batches: {batches}")
@@ -389,18 +389,18 @@ if st.button('Generate File'):
             end_time = time.time()
 
             print(f"Done! Length of results: {len(results)}")
-            st.text(f"Done! Scraped info from {total_number_of_results} ads in {convert_seconds_to_minutes_and_seconds(end_time - start_time)} minutes")
+            st.text(f"Done! Tog info från {total_number_of_results} annonser på {convert_seconds_to_minutes_and_seconds(end_time - start_time)} minuter")
             scraped_data_df = turn_grouped_results_into_df(results)
             # st.text(f"Total job posting ids found in the request: {total_number_of_results}\nTotal fetched succesfully: {total_fetched}\nTotal unique ids: {total_unique}\nTotal with hiring team available: {total_hiring_team}")
 
             if file_format == 'csv':
                 csv_file = generate_csv(scraped_data_df, result_name)
                 with open(csv_file, "rb") as file:
-                    st.download_button(label="Download CSV", data=file, file_name=csv_file, mime='text/csv')
-                st.success(f'CSV file generated: {csv_file}')
+                    st.download_button(label="Ladda ner CSV", data=file, file_name=csv_file, mime='text/csv')
+                st.success(f'CSV-fil genererad: {csv_file}')
             elif file_format == 'xlsx':
                 excel_file = generate_excel(scraped_data_df, result_name)
-                st.download_button(label="Download Excel", data=excel_file, file_name=f"{result_name}.xlsx", mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-                st.success(f'Excel file generated: {result_name}.xlsx')
+                st.download_button(label="Ladda ner xlsx", data=excel_file, file_name=f"{result_name}.xlsx", mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+                st.success(f'Excel-file genererar: {result_name}.xlsx')
         else:
             st.error('Please enter a valid LinkedIn URL.')
