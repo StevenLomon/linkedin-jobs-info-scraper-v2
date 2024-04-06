@@ -353,7 +353,7 @@ st.markdown('Vänligen kontakta mig ifall det dyker upp buggar eller errors! :)'
 st.markdown(f'Sample URL: https://www.linkedin.com/jobs/search/?currentJobId=3836861341&keywords=sem%20seo&origin=SWITCH_SEARCH_VERTICAL')
 
 # User input for LinkedIn URL
-linkedin_job_url = st.text_input('Skriv in URL:en från LinkedIn Jobs-sökningen:', '')
+linkedin_job_url = st.text_input('Skriv in en URL från LinkedIn Jobs:', '')
 result_name = st.text_input('Namn på den resulterande csv/Excel filen:', '')
 max_results_to_check = st.text_input('Max antal jobbannonser att ta data från (lämna blank för alla jobb i sökningen):', '')
 st.write("Om det inte finns en Hiring Team och företaget har mindre än eller lika med")
