@@ -349,7 +349,7 @@ def convert_seconds_to_minutes_and_seconds(seconds):
 
 ## STREAMLIT CODE
 st.title('LinkedIn Job search URL to CSV Generator V2')
-st.markdown('Vänligen kontakta mig ifall det dyker upp buggar eller errors! :)')
+st.markdown('Jobbar på att få det att funka när man tar alla jobbannonser 🛠️ Så testa med en limit')
 st.markdown(f'Sample URL: https://www.linkedin.com/jobs/search/?currentJobId=3836861341&keywords=sem%20seo&origin=SWITCH_SEARCH_VERTICAL')
 
 # User input for LinkedIn URL
@@ -384,7 +384,7 @@ if st.button('Generera fil'):
                         total_number_of_results = max_results
                 except ValueError:
                     st.error("Please enter a valid number or leave blank for all jobs.")
-                    
+
             print(f"Attempting to scrape info from {total_number_of_results} job ads")
             st.markdown(f"Tar info från {total_number_of_results} jobbannonser. Det tar ca 2.5 seconds per jobbannons, så detta kommer ta omkring {convert_seconds_to_minutes_and_seconds(total_number_of_results*2.5)} minuter men potentiellt snabbare!")
 
