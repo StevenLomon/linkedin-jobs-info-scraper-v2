@@ -28,6 +28,10 @@ def get_total_number_of_results(keyword, max_retries=2):
                 
                 if isinstance(total, int):
                     return total
+            else:
+                time.sleep(random.randint(3,5))
+                continue
+
         except requests.exceptions.RequestException as e:
             print(f"Request failed: {e}")
             time.sleep(random.randint(3,5))
@@ -70,6 +74,9 @@ def fetch_job_posting_ids(keyword, batch, max_retries=2):
                     if job_posting_id_search:
                         job_posting_id = job_posting_id_search.group(1)
                         job_posting_ids_list.append(job_posting_id)
+            else:
+                time.sleep(random.randint(3,5))
+                continue
 
         except requests.exceptions.RequestException as e:
             print(f"Request failed: {e}")
@@ -116,6 +123,10 @@ def extract_full_name_bio_and_linkedin_url(job_posting_id, max_retries=2):
                             return (full_name, bio, linkedin_url)
                     
                     return (full_name, bio, linkedin_url)
+            else:
+                time.sleep(random.randint(3,5))
+                continue
+
         except requests.exceptions.RequestException as e:
             print(f"Request failed: {e}")
             time.sleep(random.randint(3,5))
@@ -158,6 +169,10 @@ def extract_company_info(job_posting_id, max_retries=2):
                 company_industry = industries[0] if industries else None
 
                 return (job_title, company_name, employee_count, company_url, company_industry, companyID)
+            else:
+                time.sleep(random.randint(3,5))
+                continue
+
         except requests.exceptions.RequestException as e:
             print(f"Request failed: {e}")
             time.sleep(random.randint(3,5))
@@ -214,6 +229,8 @@ def extract_non_hiring_person(company_id, keywords, max_people_per_company, max_
                 return processed
             else:
                 time.sleep(random.randint(3,5))
+                continue
+
         except requests.exceptions.RequestException as e:
             print(f"Request failed: {e}")
             time.sleep(random.randint(3,5))
@@ -299,7 +316,6 @@ def turn_grouped_results_into_df(grouped_results):
             results['Hiring Team'].append(hiring_team)
             if full_name:
                 first_name, last_name = split_and_clean_full_name(full_name)
-                print(f"First name: {first_name}, Last name: {last_name}")
                 results['Förnamn'].append(first_name)
                 results['Efternamn'].append(last_name)
             else:
@@ -355,7 +371,7 @@ st.markdown(f'Sample URL: https://www.linkedin.com/jobs/search/?currentJobId=383
 # User input for LinkedIn URL
 linkedin_job_url = st.text_input('Skriv in en URL från LinkedIn Jobs:', '')
 result_name = st.text_input('Namn på den resulterande csv/Excel filen:', '')
-max_results_to_check = st.text_input('Max antal jobbannonser att ta data från (lämna blank för alla jobb i sökningen):', '')
+results_to_check = st.number_input('Antal jobbannonser att ta data från (max 500 ifall det inte finns mindre):', min_value=1, max_value=500, value=300, step=1, format="%d")
 st.write("Om det inte finns en Hiring Team och företaget har mindre än eller lika med")
 employee_threshold = st.number_input("Employee Threshold", min_value=1, value=100, step=1, format="%d", label_visibility="collapsed")
 under_threshold_keywords = st.text_input('anställda, sök företaget efter (separera keywords med kommatecken):', '')
@@ -374,17 +390,14 @@ if st.button('Generera fil'):
 
             start_time = time.time()
             total_number_of_results = get_total_number_of_results(keyword)
+
             if total_number_of_results is None:
                 st.error("Could not fetch total amount of ads. Try again in a bit")
+            else:
+                # Use the lesser of the two: total_number_of_results from LinkedIn or user's choice
+                total_number_of_results = min(total_number_of_results, results_to_check)
 
-            if max_results_to_check.strip():  # Checks if input is not just whitespace
-                try:
-                    max_results = int(max_results_to_check)
-                    if max_results < total_number_of_results:
-                        total_number_of_results = max_results
-                except ValueError:
-                    st.error("Please enter a valid number or leave blank for all jobs.")
-
+            print(f"Total after transformation: {total_number_of_results}")
             print(f"Attempting to scrape info from {total_number_of_results} job ads")
             st.markdown(f"Tar info från {total_number_of_results} jobbannonser. Det tar ca 2.5 seconds per jobbannons, så detta kommer ta omkring {convert_seconds_to_minutes_and_seconds(total_number_of_results*2.5)} minuter men potentiellt snabbare!")
 
@@ -397,7 +410,6 @@ if st.button('Generera fil'):
             print(f"Done! Length of results: {len(results)}")
             st.text(f"Done! Tog info från {total_number_of_results} annonser på {convert_seconds_to_minutes_and_seconds(end_time - start_time)} minuter")
             scraped_data_df = turn_grouped_results_into_df(results)
-            # st.text(f"Total job posting ids found in the request: {total_number_of_results}\nTotal fetched succesfully: {total_fetched}\nTotal unique ids: {total_unique}\nTotal with hiring team available: {total_hiring_team}")
 
             if file_format == 'csv':
                 csv_file = generate_csv(scraped_data_df, result_name)
