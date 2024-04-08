@@ -371,7 +371,7 @@ st.markdown(f'Sample URL: https://www.linkedin.com/jobs/search/?currentJobId=383
 # User input for LinkedIn URL
 linkedin_job_url = st.text_input('Skriv in en URL från LinkedIn Jobs:', '')
 result_name = st.text_input('Namn på den resulterande csv/Excel filen:', '')
-results_to_check = st.number_input('Antal jobbannonser att ta data från (max 500 ifall det inte finns mindre):', min_value=1, max_value=500, value=300, step=1, format="%d")
+max_results_to_check = st.text_input('Max antal jobb att ta info från (lämna blankt för att ta alla tillgängliga i sökningen):', '')
 st.write("Om det inte finns en Hiring Team och företaget har mindre än eller lika med")
 employee_threshold = st.number_input("Employee Threshold", min_value=1, value=100, step=1, format="%d", label_visibility="collapsed")
 under_threshold_keywords = st.text_input('anställda, sök företaget efter (separera keywords med kommatecken):', '')
@@ -391,13 +391,19 @@ if st.button('Generera fil'):
             start_time = time.time()
             total_number_of_results = get_total_number_of_results(keyword)
 
-            if total_number_of_results is None:
-                st.error("Could not fetch total amount of ads. Try again in a bit")
+            if max_results_to_check.strip():  # Checks if input is not just whitespace
+                try:
+                    max_results = int(max_results_to_check)
+                    if max_results < total_number_of_results:
+                        total_number_of_results = max_results
+                except ValueError:
+                    st.error("Please enter a valid number or leave blank for all jobs.")
             else:
-                # Use the lesser of the two: total_number_of_results from LinkedIn or user's choice
-                total_number_of_results = min(total_number_of_results, results_to_check)
+                # Explicit handling for "all" case, if needed
+                pass
 
             print(f"Total after transformation: {total_number_of_results}")
+            print(type(total_number_of_results))
             print(f"Attempting to scrape info from {total_number_of_results} job ads")
             st.markdown(f"Tar info från {total_number_of_results} jobbannonser. Det tar ca 2.5 seconds per jobbannons, så detta kommer ta omkring {convert_seconds_to_minutes_and_seconds(total_number_of_results*2.5)} minuter men potentiellt snabbare!")
 

@@ -30,6 +30,10 @@ This is truly fucking weird. If a company is of a certain size, their api_reques
 outside of the company id that is separate for each company. I am not bothering with these, so let's just pray that
 they have a hiring team like SAAB! And if they don't, they're probably not interested anyway
 
+is_present = any(title in bio.lower() for title in keywords_list)
+if is_present:
+    processed.append(("FALSE", full_name, bio, linkedin_url_result))
+
 # Flag to determine if an exact match keyword is present
 exact_match_found = any(exact_keyword in bio.lower() for exact_keyword in keywords_list)
 if exact_match_found:
@@ -43,7 +47,3 @@ for keyword in keywords_list:
     if all(phrase.lower() in bio for phrase in key_phrases):
         processed.append(("FALSE", full_name, bio, linkedin_url_result))
         break  # Break the loop once a match is found to avoid duplicating the same person for multiple keywords
-
-is_present = any(title in bio.lower() for title in keywords_list)
-if is_present:
-    processed.append(("FALSE", full_name, bio, linkedin_url_result))
