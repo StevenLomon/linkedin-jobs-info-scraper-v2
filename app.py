@@ -440,7 +440,7 @@ def convert_seconds_to_minutes_and_seconds(seconds):
 
 ## STREAMLIT CODE
 st.title('LinkedIn Job search URL to CSV Generator V2')
-st.markdown('Jobbar på att få det att funka 100% 🛠️ Just nu är det hårdkodat att den kollar efter max 2 personer per företag')
+# st.markdown('Jobbar på att få det att funka 100% 🛠️ Just nu är det hårdkodat att den kollar efter max 2 personer per företag')
 st.markdown(f'Sample URL: https://www.linkedin.com/jobs/search/?currentJobId=3842223191&f_F=mrkt&geoId=105117694&keywords=sem%20seo&location=Sweden&origin=JOB_SEARCH_PAGE_JOB_FILTER&sortBy=R')
 
 # User input for LinkedIn URL
