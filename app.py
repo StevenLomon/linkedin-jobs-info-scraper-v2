@@ -510,7 +510,7 @@ if st.button('Generera fil'):
 
             print(f"Done! Length of results: {len(results)}")
             st.text(f"Done! Tog info från {total_number_of_results} annonser på {convert_seconds_to_minutes_and_seconds(end_time - start_time)} minuter")
-            scraped_data_df = transform_grouped_results_into_df_parallel(results, filters)
+            scraped_data_df = transform_grouped_results_into_df_parallel(results)
 
             if file_format == 'csv':
                 csv_file = generate_csv(scraped_data_df, result_name)
