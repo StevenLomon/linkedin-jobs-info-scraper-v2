@@ -4,6 +4,7 @@ import streamlit as st
 from rich import print, print_json
 from io import BytesIO
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from itertools import cycle
 
 def get_total_number_of_results(keyword, max_retries=2):
     api_request_url = f"https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollectionLite-67&count=25&q=jobSearch&query=(origin:SWITCH_SEARCH_VERTICAL,keywords:{keyword},spellCorrectionEnabled:true)&start=0"    
@@ -384,10 +385,10 @@ def convert_seconds_to_minutes_and_seconds(seconds):
     return '%02d:%02d' % (min, sec)
 
 ## STREAMLIT CODE
-job_function_filter = {'Advertising':'advr', 'Analyst':'anls', 'Art/Creative':'art', 'Business Development':'bd', 
+job_function_filter = {'Advertising':'advr', 'Analyst':'anls', 'Art/Creative':'art', 
                         'Consulting':'cnsl', 'Design':'dsgn', 'Engineering':'eng', 'Information Technology':'it', 
-                        'Legal':'lgl', 'Management':'mgmt', 'Marketing':'mrkt', 'Sales':'sale', 
-                        'Project Management':'prjm', 'Strategy/Planning':'stra'}
+                        'Management':'mgmt', 'Marketing':'mrkt', 'Sales':'sale', 
+                        'Project Management':'prjm'}
 experience_level_filter = {'Internship':1, 'Entry level':2, 'Associate':3, 'Mid-Senior level':4, 
                            'Director':5, 'Executive':6}
 remote_filter = {'On-site':1, 'Remote':2, 'Hybrid':3}
@@ -406,6 +407,38 @@ under_threshold_keywords = st.text_input('anställda, sök företaget efter (sep
 over_threshold_keywords = st.text_input('Om det har mer, sök företaget efter: (separera keywords med kommatecken)', '')
 # max_people_per_company = st.number_input('Max antal anställda per företag som ska med i resultatet om det inte finns Hiring Team:', min_value=1, value=2, step=1, format="%d")
 max_people_per_company = 2
+def create_checkboxes(filter_dict, title):
+    selected_values = []
+    st.write(title)
+    # Adjust the number of columns based on the title
+    if title == "Job Function":
+        num_cols = 5
+    elif title == "Experience Level":
+        num_cols = 3
+    else:
+        num_cols = len(filter_dict)
+    cols = st.columns(num_cols)
+
+    # Use itertools.cycle to cycle through the columns
+    cols_cycle = cycle(cols)
+    
+    for key, value in filter_dict.items():
+        col = next(cols_cycle)  # Get the next column from the cycle
+        if col.checkbox(key):  # Create a checkbox in the column
+            selected_values.append(value)
+    
+    return selected_values
+
+# Call the function for each dictionary and collect selected items
+selected_job_functions = create_checkboxes(job_function_filter, "Job Function")
+selected_experience_levels = create_checkboxes(experience_level_filter, "Experience Level")
+selected_remote_options = create_checkboxes(remote_filter, "Remote Options")
+
+# Example usage of the selected items
+if st.button("Print Selected Values"):
+    st.write("Selected Job Functions:", selected_job_functions)
+    st.write("Selected Experience Levels:", selected_experience_levels)
+    st.write("Selected Remote Options:", selected_remote_options)
 
 # Radio button to choose the file format
 file_format = st.radio("Välj filformat:", ('csv', 'xlsx'))
