@@ -363,7 +363,7 @@ def main(keyword, batches, staff_threshold, under_threshold_keywords, over_thres
     
     return grouped_results
 
-def process_staff_and_company_data(person, company_data, job_posting_id):
+def process_staff_and_company_data(person, company_data, job_posting_id, filters):
     hiring_team, full_name, bio, linkedin_url = person
     job_title, company_name, staff_count, staff_range, company_url, company_industry, company_id = company_data
 
