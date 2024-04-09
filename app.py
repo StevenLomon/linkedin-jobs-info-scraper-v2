@@ -331,9 +331,12 @@ def main(keyword, batches, staff_threshold, under_threshold_keywords, over_thres
         }
 
     results = {job_posting: [None, None] for job_posting in all_job_posting_ids}  # Pre-initialize results dict with placeholders
+    print(f"Entered threading stage...")
 
+    counter = 0
     #Iterating over completed tasks as they complete
     for future in as_completed(future_to_company | future_to_staff):
+        print(f"Processed: {counter}")
         if future:
             job_posting = future_to_company.get(future) or future_to_staff.get(future)
             try:
@@ -342,10 +345,13 @@ def main(keyword, batches, staff_threshold, under_threshold_keywords, over_thres
                     results[job_posting][0] = data
                 else:
                     results[job_posting][1] = data
+                counter += 1
             except Exception as e:
                 print(f"Job posting {job_posting} generated an exception: {e}")
+                counter += 1
         else:
             print(f"Job posting {job_posting} returned None")
+            counter += 1
             continue
 
     # Organizing the results
@@ -369,15 +375,15 @@ def process_staff_and_company_data(person, company_data, job_posting_id):
         url_formatted_keywords = company_keywords.strip().replace(', ', '%20OR%20').replace(' ', '%20')
         construced_url = f"{company_url}/people/?keywords={url_formatted_keywords}"
         row = {'Hiring Team':hiring_team, 'Förnamn':construced_url, 'Efternamn':last_name, 'Bio':bio, 
-            'LinkedIn URL':linkedin_url, 'Jobbtitel som sökes':job_title, 'Jobbannons-URL':f"https://www.linkedin.com/jobs/search/?currentJobId={job_posting_id}&geoId=105117694&keywords={keyword}&location=Sweden", 
+            'LinkedIn URL':linkedin_url, 'Jobbtitel som sökes':job_title, 'Jobbannons-URL':f"https://www.linkedin.com/jobs/search/?currentJobId={job_posting_id}&f_E={filters.get('Experience Level', None)}&f_F={filters.get('Job Function', None)}&f_WT={filters.get('Remote Options', None)}&geoId=105117694&keywords={keyword}&location=Sweden&origin=JOB_SEARCH_PAGE_JOB_FILTER&sortBy=R", 
             'Företag':company_name, 'Antal anställda':staff_range, 'Företagsindustri':company_industry, 'Företags-URL':company_url}
     else:
         row = {'Hiring Team':hiring_team, 'Förnamn':first_name, 'Efternamn':last_name, 'Bio':bio, 
-            'LinkedIn URL':linkedin_url, 'Jobbtitel som sökes':job_title, 'Jobbannons-URL':f"https://www.linkedin.com/jobs/search/?currentJobId={job_posting_id}&geoId=105117694&keywords={keyword}&location=Sweden", 
+            'LinkedIn URL':linkedin_url, 'Jobbtitel som sökes':job_title, 'Jobbannons-URL':f"https://www.linkedin.com/jobs/search/?currentJobId={job_posting_id}&f_E={filters.get('Experience Level', None)}&f_F={filters.get('Job Function', None)}&f_WT={filters.get('Remote Options', None)}&geoId=105117694&keywords={keyword}&location=Sweden&origin=JOB_SEARCH_PAGE_JOB_FILTER&sortBy=R", 
             'Företag':company_name, 'Antal anställda':staff_range, 'Företagsindustri':company_industry, 'Företags-URL':company_url}
     return row
 
-def process_result(result):
+def process_result(result, filters):
     rows = []
 
     job_posting_id = result[0]
@@ -389,20 +395,20 @@ def process_result(result):
     print(f"staff data: {staff_data}")
 
     first_person = staff_data[0]
-    row = process_staff_and_company_data(first_person, company_data, job_posting_id)
+    row = process_staff_and_company_data(first_person, company_data, job_posting_id, filters)
     rows.append(row)
     
     if len(staff_data) > 1:
         second_person = staff_data[1]
-        row = process_staff_and_company_data(second_person, company_data, job_posting_id)
+        row = process_staff_and_company_data(second_person, company_data, job_posting_id, filters)
         rows.append(row)
     return rows
 
-def transform_grouped_results_into_df_parallel(grouped_results):
+def transform_grouped_results_into_df_parallel(grouped_results, filters):
     processed_lists = []
     with ThreadPoolExecutor(max_workers=4) as executor:
         # Execute process_result for each result in parallel
-        for processed_result in executor.map(process_result, grouped_results):
+        for processed_result in executor.map(process_result, grouped_results, filters):
             # processed_result is a list of dictionaries (rows)
             processed_lists.extend(processed_result)  # Extend the master list with these rows
     
@@ -433,17 +439,9 @@ def convert_seconds_to_minutes_and_seconds(seconds):
     return '%02d:%02d' % (min, sec)
 
 ## STREAMLIT CODE
-job_function_filter = {'Advertising':'advr', 'Analyst':'anls', 'Art/Creative':'art', 
-                        'Consulting':'cnsl', 'Design':'dsgn', 'Engineering':'eng', 'Information Technology':'it', 
-                        'Management':'mgmt', 'Marketing':'mrkt', 'Sales':'sale', 
-                        'Project Management':'prjm'}
-experience_level_filter = {'Internship':1, 'Entry level':2, 'Associate':3, 'Mid-Senior level':4, 
-                           'Director':5, 'Executive':6}
-remote_filter = {'On-site':1, 'Remote':2, 'Hybrid':3}
-
 st.title('LinkedIn Job search URL to CSV Generator V2')
 st.markdown('Jobbar på att få det att funka 100% 🛠️ Just nu är det hårdkodat att den kollar efter max 2 personer per företag')
-st.markdown(f'Sample URL: https://www.linkedin.com/jobs/search/?currentJobId=3836861341&keywords=sem%20seo&origin=SWITCH_SEARCH_VERTICAL')
+st.markdown(f'Sample URL: https://www.linkedin.com/jobs/search/?currentJobId=3842223191&f_F=mrkt&geoId=105117694&keywords=sem%20seo&location=Sweden&origin=JOB_SEARCH_PAGE_JOB_FILTER&sortBy=R')
 
 # User input for LinkedIn URL
 linkedin_job_url = st.text_input('Skriv in en URL från LinkedIn Jobs:', '')
@@ -465,6 +463,7 @@ if st.button('Generera fil'):
         if linkedin_job_url:
             keyword_search = re.search(r'keywords=([^&]+)', linkedin_job_url)
             keyword = keyword_search.group(1) if keyword_search else None
+            print(f"\nNew search! Keyword: {keyword}")
 
             filters = extract_filters_from_url(linkedin_job_url)
             print(f"Filters: {filters}")
@@ -497,7 +496,7 @@ if st.button('Generera fil'):
 
             print(f"Done! Length of results: {len(results)}")
             st.text(f"Done! Tog info från {total_number_of_results} annonser på {convert_seconds_to_minutes_and_seconds(end_time - start_time)} minuter")
-            scraped_data_df = transform_grouped_results_into_df_parallel(results)
+            scraped_data_df = transform_grouped_results_into_df_parallel(results, filters)
 
             if file_format == 'csv':
                 csv_file = generate_csv(scraped_data_df, result_name)
@@ -557,6 +556,14 @@ if st.button('Generera fil'):
 
 #     linkedin_jobs_df = pd.DataFrame.from_dict(results)
 #     return linkedin_jobs_df
+
+# job_function_filter = {'Advertising':'advr', 'Analyst':'anls', 'Art/Creative':'art', 
+#                         'Consulting':'cnsl', 'Design':'dsgn', 'Engineering':'eng', 'Information Technology':'it', 
+#                         'Management':'mgmt', 'Marketing':'mrkt', 'Sales':'sale', 
+#                         'Project Management':'prjm'}
+# experience_level_filter = {'Internship':1, 'Entry level':2, 'Associate':3, 'Mid-Senior level':4, 
+#                            'Director':5, 'Executive':6}
+# remote_filter = {'On-site':1, 'Remote':2, 'Hybrid':3}
 
 # def create_checkboxes(filter_dict, title):
 #     selected_values = []
