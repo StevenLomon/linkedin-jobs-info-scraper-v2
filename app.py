@@ -384,7 +384,13 @@ def convert_seconds_to_minutes_and_seconds(seconds):
     return '%02d:%02d' % (min, sec)
 
 ## STREAMLIT CODE
-job_function_dict = {'Business Development':'bd', 'Sales':'sale'}
+job_function_filter = {'Advertising':'advr', 'Analyst':'anls', 'Art/Creative':'art', 'Business Development':'bd', 
+                        'Consulting':'cnsl', 'Design':'dsgn', 'Engineering':'eng', 'Information Technology':'it', 
+                        'Legal':'lgl', 'Management':'mgmt', 'Marketing':'mrkt', 'Sales':'sale', 
+                        'Project Management':'prjm', 'Strategy/Planning':'stra'}
+experience_level_filter = {'Internship':1, 'Entry level':2, 'Associate':3, 'Mid-Senior level':4, 
+                           'Director':5, 'Executive':6}
+remote_filter = {'On-site':1, 'Remote':2, 'Hybrid':3}
 
 st.title('LinkedIn Job search URL to CSV Generator V2')
 st.markdown('Jobbar på att få det att funka 100% 🛠️ Just nu är det hårdkodat att den kollar efter max 2 personer per företag')
