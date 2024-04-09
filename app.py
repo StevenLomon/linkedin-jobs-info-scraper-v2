@@ -368,7 +368,7 @@ def main(keyword, filters, batches, staff_threshold, under_threshold_keywords, o
     
     return grouped_results
 
-def process_staff_and_company_data(person, company_data, job_posting_id, filters):
+def process_staff_and_company_data(person, company_data, job_posting_id):
     hiring_team, full_name, bio, linkedin_url = person
     job_title, company_name, staff_count, staff_range, company_url, company_industry, company_id = company_data
 
@@ -388,15 +388,15 @@ def process_staff_and_company_data(person, company_data, job_posting_id, filters
         url_formatted_keywords = company_keywords.strip().replace(', ', '%20OR%20').replace(' ', '%20')
         construced_url = f"{company_url}/people/?keywords={url_formatted_keywords}"
         row = {'Hiring Team':hiring_team, 'Förnamn':construced_url, 'Efternamn':last_name, 'Bio':bio, 
-            'LinkedIn URL':linkedin_url, 'Jobbtitel som sökes':job_title, 'Jobbannons-URL':f"https://www.linkedin.com/jobs/search/?currentJobId={job_posting_id}&f_E={exp_level}&f_F={job_function}&f_WT={remote_options}&geoId=105117694&keywords={keyword}&location=Sweden&origin=JOB_SEARCH_PAGE_JOB_FILTER&sortBy=R", 
+            'LinkedIn URL':linkedin_url, 'Jobbtitel som sökes':job_title, 'Jobbannons-URL':f"https://www.linkedin.com/jobs/search/?currentJobId={job_posting_id}&geoId=105117694&keywords={keyword}&location=Sweden&origin=JOB_SEARCH_PAGE_JOB_FILTER&sortBy=R", 
             'Företag':company_name, 'Antal anställda':staff_range, 'Företagsindustri':company_industry, 'Företags-URL':company_url}
     else:
         row = {'Hiring Team':hiring_team, 'Förnamn':first_name, 'Efternamn':last_name, 'Bio':bio, 
-            'LinkedIn URL':linkedin_url, 'Jobbtitel som sökes':job_title, 'Jobbannons-URL':f"https://www.linkedin.com/jobs/search/?currentJobId={job_posting_id}&f_E={exp_level}&f_F={job_function}&f_WT={remote_options}&geoId=105117694&keywords={keyword}&location=Sweden&origin=JOB_SEARCH_PAGE_JOB_FILTER&sortBy=R", 
+            'LinkedIn URL':linkedin_url, 'Jobbtitel som sökes':job_title, 'Jobbannons-URL':f"https://www.linkedin.com/jobs/search/?currentJobId={job_posting_id}&geoId=105117694&keywords={keyword}&location=Sweden&origin=JOB_SEARCH_PAGE_JOB_FILTER&sortBy=R", 
             'Företag':company_name, 'Antal anställda':staff_range, 'Företagsindustri':company_industry, 'Företags-URL':company_url}
     return row
 
-def process_result(result, filters):
+def process_result(result):
     rows = []
 
     job_posting_id = result[0]
@@ -408,20 +408,20 @@ def process_result(result, filters):
     print(f"staff data: {staff_data}")
 
     first_person = staff_data[0]
-    row = process_staff_and_company_data(first_person, company_data, job_posting_id, filters)
+    row = process_staff_and_company_data(first_person, company_data, job_posting_id)
     rows.append(row)
     
     if len(staff_data) > 1:
         second_person = staff_data[1]
-        row = process_staff_and_company_data(second_person, company_data, job_posting_id, filters)
+        row = process_staff_and_company_data(second_person, company_data, job_posting_id)
         rows.append(row)
     return rows
 
-def transform_grouped_results_into_df_parallel(grouped_results, filters):
+def transform_grouped_results_into_df_parallel(grouped_results):
     processed_lists = []
     with ThreadPoolExecutor(max_workers=4) as executor:
         # Execute process_result for each result in parallel
-        for processed_result in executor.map(process_result, grouped_results, filters):
+        for processed_result in executor.map(process_result, grouped_results):
             # processed_result is a list of dictionaries (rows)
             processed_lists.extend(processed_result)  # Extend the master list with these rows
     
