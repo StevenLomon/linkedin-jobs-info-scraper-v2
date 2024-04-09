@@ -16,12 +16,12 @@ def get_total_number_of_results(keyword, max_retries=2):
         'sec-fetch-mode': 'cors'
     }
 
+    total = None
     for attempt in range(max_retries):
         try:
             response = requests.request("GET", api_request_url, headers=headers, data=payload)
             if response.status_code == 200:
                 data = response.json()
-                total = None
                 paging = data.get('data', {}).get('paging', {})
                 if paging:
                     total = paging.get('total')
@@ -101,7 +101,6 @@ def extract_full_name_bio_and_linkedin_url(job_posting_id, max_retries=2):
     }
 
     full_name = bio = linkedin_url = None
-
     for attempt in range(max_retries):
         try:
             response = requests.request("GET", api_request_url, headers=headers)
@@ -150,6 +149,7 @@ def extract_company_info(job_posting_id, max_retries=2):
     'sec-fetch-mode': 'cors'
     }
 
+    job_title = company_name = staff_count = staff_range = company_url = company_industry = companyID = None
     for attempt in range(max_retries):
         try:
             response = requests.request("GET", api_request_url, headers=headers)
@@ -161,14 +161,26 @@ def extract_company_info(job_posting_id, max_retries=2):
                     .get('com.linkedin.voyager.deco.jobs.web.shared.WebJobPostingCompany', {}) \
                     .get('companyResolutionResult', {})
                 company_name = companyResolutionResult.get('name', None)
-                employee_count = companyResolutionResult.get('staffCount', None)
+                staff_count = companyResolutionResult.get('staffCount', None)
+                print(f"Staff count straight from API: {staff_count}")
+                staff_range_lower = companyResolutionResult.get('staffCountRange', {}).get('start', None)
+                staff_range_upper = companyResolutionResult.get('staffCountRange', {}).get('end', None)
+                if staff_range_lower is not None and staff_range_upper is not None:
+                    staff_range = f"{staff_range_lower} - {staff_range_upper}"
+                elif staff_range_lower is not None:
+                    staff_range = f"Åtminstone {staff_range_lower}"
+                elif staff_range_upper is not None:
+                    staff_range = f"Upp till {staff_range_upper}"
+                else:
+                    staff_range = "Okänt"
+
                 companyID_search = re.search(r'(\d+)$', companyResolutionResult.get('entityUrn', ''))
                 companyID = companyID_search.group(1) if companyID_search else None
                 company_url = companyResolutionResult.get('url', None)
                 industries = companyResolutionResult.get('industries', [])
                 company_industry = industries[0] if industries else None
 
-                return (job_title, company_name, employee_count, company_url, company_industry, companyID)
+                return (job_title, company_name, staff_count, staff_range, company_url, company_industry, companyID)
             else:
                 time.sleep(random.randint(3,5))
                 continue
@@ -176,7 +188,7 @@ def extract_company_info(job_posting_id, max_retries=2):
         except requests.exceptions.RequestException as e:
             print(f"Request failed: {e}")
             time.sleep(random.randint(3,5))
-    return None, None, None, None, None, None
+    return None, None, None, None, None, None, None
 
 def extract_non_hiring_person(company_id, keywords, max_people_per_company, max_retries=2): 
     keywords_list = keywords.lower().split(", ")
@@ -192,6 +204,7 @@ def extract_non_hiring_person(company_id, keywords, max_people_per_company, max_
     'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
     }
 
+    processed_staff = []
     for attempt in range(max_retries):
         try:
             time.sleep(random.randint(1,3))
@@ -204,10 +217,9 @@ def extract_non_hiring_person(company_id, keywords, max_people_per_company, max_
                 # Filter out any items in 'included' that don't represent a person based on a minimum number of keys
                 filtered_people = [person for person in included if len(person) >= 5]
                 # print(filtered_people[:300])
-                
-                processed = []
+                   
                 for person in filtered_people:
-                    if  len(processed) >= max_people_per_company:
+                    if  len(processed_staff) >= max_people_per_company:
                         break # Exit the loop once we have enough people
 
                     if not isinstance(person, dict):
@@ -224,9 +236,9 @@ def extract_non_hiring_person(company_id, keywords, max_people_per_company, max_
                     
                     is_present = any(title in bio.lower() for title in keywords_list)
                     if is_present:
-                        processed.append(("FALSE", full_name, bio, linkedin_url_result))
+                        processed_staff.append(("FALSE", full_name, bio, linkedin_url_result))
 
-                return processed
+                return processed_staff
             else:
                 time.sleep(random.randint(3,5))
                 continue
@@ -236,44 +248,45 @@ def extract_non_hiring_person(company_id, keywords, max_people_per_company, max_
             time.sleep(random.randint(3,5))
     return []
 
-def hiring_person_or_not(job_posting_id, employee_threshold, under_threshold_keywords, over_threshold_keywords, max_people_per_company):
+def hiring_person_or_not(job_posting_id, staff_threshold, under_threshold_keywords, over_threshold_keywords, max_people_per_company):
     full_name = bio = linkedin_url = None
     full_name, bio, linkedin_url = extract_full_name_bio_and_linkedin_url(job_posting_id)
     if full_name and bio and linkedin_url:
         hiring_team = "TRUE"
         return [(hiring_team, full_name, bio, linkedin_url)]
     else:
-        job_title, company_name, employee_count, company_url, company_industry, companyID = extract_company_info(job_posting_id)
+        job_title, company_name, staff_count, staff_range, company_url, company_industry, companyID = extract_company_info(job_posting_id)
+        print(f"Staff count inside hiring_person_or_not for comparison with threshold: {staff_count}")
 
-        if employee_count:
-            company_keywords = under_threshold_keywords if employee_count <= employee_threshold else over_threshold_keywords    
+        if staff_count:
+            company_keywords = under_threshold_keywords if staff_count <= staff_threshold else over_threshold_keywords    
             company_people = extract_non_hiring_person(companyID, company_keywords, max_people_per_company)
             return company_people
         else:
             return []
 
-def main(keyword, batches, employee_threshold, under_threshold_keywords, over_threshold_keywords, max_people_per_company, max_workers=5):
+def main(keyword, batches, staff_threshold, under_threshold_keywords, over_threshold_keywords, max_people_per_company, max_workers=5):
     all_job_posting_ids = extract_all_job_posting_ids(keyword, batches)
     print(f"All job posting ids: {all_job_posting_ids}")
-    grouped_results = []
 
+    grouped_results = []
     # Using ThreadPoolExecutor to manage a pool of threads
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         # Dictionary to keep track of futures and job postings
         future_to_company = {
             executor.submit(extract_company_info, job_posting): job_posting for job_posting in all_job_posting_ids
         }
-        future_to_employee = {
-            executor.submit(hiring_person_or_not, job_posting, employee_threshold, under_threshold_keywords, 
+        future_to_staff = {
+            executor.submit(hiring_person_or_not, job_posting, staff_threshold, under_threshold_keywords, 
                             over_threshold_keywords, max_people_per_company): job_posting for job_posting in all_job_posting_ids
         }
 
     results = {job_posting: [None, None] for job_posting in all_job_posting_ids}  # Pre-initialize results dict with placeholders
 
     #Iterating over completed tasks as they complete
-    for future in as_completed(future_to_company | future_to_employee):
+    for future in as_completed(future_to_company | future_to_staff):
         if future:
-            job_posting = future_to_company.get(future) or future_to_employee.get(future)
+            job_posting = future_to_company.get(future) or future_to_staff.get(future)
             try:
                 data = future.result()
                 if future in future_to_company:
@@ -288,29 +301,49 @@ def main(keyword, batches, employee_threshold, under_threshold_keywords, over_th
 
     # Organizing the results
     for job_posting, data_pair in results.items():
-        # Check if employee data (data_pair[1]) is not empty
-        if data_pair[1]:  # This checks if employee_data is not empty
+        # Check if staff data (data_pair[1]) is not empty
+        if data_pair[1]:  # This checks if staff_data is not empty
             print(f"Data pair: {data_pair}")
             grouped_results.append((job_posting, tuple(data_pair)))
     
     return grouped_results
 
+def process_result(result):
+    rows = []
+
+    job_posting_id = result[0]
+    if isinstance(result[1][1], list): # staff data will always be a list
+        company_data, staff_data = result[1]
+    else:
+        staff_data, company_data = result[1]
+    print(f"Company data: {company_data}")
+    print(f"staff data: {staff_data}")
+
+    job_title, company_name, staff_count, staff_range, company_url, company_industry, company_id = company_data
+    print(f"Staff count when entering the DataFrame: {staff_count}")
+
+    first_person = staff_data[0]
+    hiring_team, full_name, bio, linkedin_url = first_person
+
+    row = {'Hiring Team':[], 'Förnamn':[], 'Efternamn':[], 'Bio':[], 'LinkedIn URL':[], 'Jobbtitel som sökes':[], 'Jobbannons-URL':[], 'Företag':[], 'Antal anställda':[], 'Anställda interall':[], 'Företagsindustri':[], 'Företags-URL':[]}
+
 def turn_grouped_results_into_df(grouped_results):
-    results = {'Hiring Team':[], 'Förnamn':[], 'Efternamn':[], 'Bio':[], 'LinkedIn URL':[], 'Jobbtitel som sökes':[], 'Jobbannons-URL':[], 'Företag':[], 'Antal anställda':[], 'Företagsindustri':[], 'Företags-URL':[]}
+    results = {'Hiring Team':[], 'Förnamn':[], 'Efternamn':[], 'Bio':[], 'LinkedIn URL':[], 'Jobbtitel som sökes':[], 'Jobbannons-URL':[], 'Företag':[], 'Antal anställda':[], 'Anställda interall':[], 'Företagsindustri':[], 'Företags-URL':[]}
 
     for result in grouped_results:
         job_posting_id = result[0]
-        if isinstance(result[1][1], list): # Employee data will always be a list
-            company_data, employee_data = result[1]
+        if isinstance(result[1][1], list): # staff data will always be a list
+            company_data, staff_data = result[1]
         else:
-            employee_data, company_data = result[1]
+            staff_data, company_data = result[1]
 
         print(f"Company data: {company_data}")
-        print(f"Employee data: {employee_data}")
+        print(f"staff data: {staff_data}")
 
-        job_title, company_name, employee_count, company_url, company_industry, company_id = company_data
+        job_title, company_name, staff_count, staff_range, company_url, company_industry, company_id = company_data
+        print(f"Staff count when entering the DataFrame: {staff_count}")
 
-        for person in employee_data:
+        for person in staff_data:
             hiring_team, full_name, bio, linkedin_url = person
         
             results['Hiring Team'].append(hiring_team)
@@ -320,8 +353,8 @@ def turn_grouped_results_into_df(grouped_results):
                 results['Efternamn'].append(last_name)
             else:
                 results['Efternamn'].append(None)
-                if employee_count:
-                    company_keywords = under_threshold_keywords if employee_count <= employee_threshold else over_threshold_keywords
+                if staff_count:
+                    company_keywords = under_threshold_keywords if staff_count <= staff_threshold else over_threshold_keywords
                     url_formatted_keywords = company_keywords.strip().replace(', ', '%20OR%20').replace(' ', '%20')
                     construced_url = f"{company_url}/people/?keywords={url_formatted_keywords}"
                     results['Förnamn'].append(construced_url)
@@ -333,7 +366,8 @@ def turn_grouped_results_into_df(grouped_results):
             results['Jobbtitel som sökes'].append(job_title)
             results['Jobbannons-URL'].append(f"https://www.linkedin.com/jobs/search/?currentJobId={job_posting_id}&geoId=105117694&keywords={keyword}&location=Sweden")
             results['Företag'].append(company_name)
-            results['Antal anställda'].append(employee_count)
+            results['Antal anställda'].append(staff_count)
+            results['Anställda interall'].append(staff_range)
             results['Företagsindustri'].append(company_industry)
             results['Företags-URL'].append(company_url)
 
@@ -373,10 +407,11 @@ linkedin_job_url = st.text_input('Skriv in en URL från LinkedIn Jobs:', '')
 result_name = st.text_input('Namn på den resulterande csv/Excel filen:', '')
 max_results_to_check = st.text_input('Max antal jobb att ta info från (lämna blankt för att ta alla tillgängliga i sökningen):', '')
 st.write("Om det inte finns en Hiring Team och företaget har mindre än eller lika med")
-employee_threshold = st.number_input("Employee Threshold", min_value=1, value=100, step=1, format="%d", label_visibility="collapsed")
+staff_threshold = st.number_input("staff Threshold", min_value=1, value=100, step=1, format="%d", label_visibility="collapsed")
 under_threshold_keywords = st.text_input('anställda, sök företaget efter (separera keywords med kommatecken):', '')
 over_threshold_keywords = st.text_input('Om det har mer, sök företaget efter: (separera keywords med kommatecken)', '')
-max_people_per_company = st.number_input('Max antal anställda per företag som ska med i resultatet om det inte finns Hiring Team:', min_value=1, value=2, step=1, format="%d")
+# max_people_per_company = st.number_input('Max antal anställda per företag som ska med i resultatet om det inte finns Hiring Team:', min_value=1, value=2, step=1, format="%d")
+max_people_per_company = 2
 
 # Radio button to choose the file format
 file_format = st.radio("Välj filformat:", ('csv', 'xlsx'))
@@ -410,7 +445,7 @@ if st.button('Generera fil'):
             batches = split_total_into_batches_of_100(total_number_of_results)
             print(f"Splitting {total_number_of_results} in batches: {batches}")
 
-            results = main(keyword, batches, employee_threshold, under_threshold_keywords, over_threshold_keywords, int(max_people_per_company))
+            results = main(keyword, batches, staff_threshold, under_threshold_keywords, over_threshold_keywords, int(max_people_per_company))
             end_time = time.time()
 
             print(f"Done! Length of results: {len(results)}")
