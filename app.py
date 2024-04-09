@@ -317,6 +317,7 @@ def hiring_person_or_not(job_posting_id, staff_threshold, under_threshold_keywor
 def main(keyword, batches, staff_threshold, under_threshold_keywords, over_threshold_keywords, max_people_per_company, max_workers=5):
     all_job_posting_ids = extract_all_job_posting_ids(keyword, batches)
     print(f"All job posting ids: {all_job_posting_ids}")
+    print(f"Length of all job postings: {len(all_job_posting_ids)}")
 
     grouped_results = []
     # Using ThreadPoolExecutor to manage a pool of threads
@@ -358,7 +359,7 @@ def main(keyword, batches, staff_threshold, under_threshold_keywords, over_thres
     for job_posting, data_pair in results.items():
         # Check if staff data (data_pair[1]) is not empty
         if data_pair[1]:  # This checks if staff_data is not empty
-            print(f"Data pair: {data_pair}")
+            # print(f"Data pair: {data_pair}")
             grouped_results.append((job_posting, tuple(data_pair)))
     
     return grouped_results
@@ -368,6 +369,7 @@ def process_staff_and_company_data(person, company_data, job_posting_id, filters
     job_title, company_name, staff_count, staff_range, company_url, company_industry, company_id = company_data
 
     first_name = last_name = row = None
+    print(f"Type of filters: {type(filters)}")
     exp_level = filters.get('Experience Level', None)
     job_function = filters.get('Job Function', None)
     remote_options = filters.get('Remote Options', None)
@@ -473,6 +475,7 @@ if st.button('Generera fil'):
 
             filters = extract_filters_from_url(linkedin_job_url)
             print(f"Filters: {filters}")
+            print(f"Type of filters: {type(filters)}")
 
             start_time = time.time()
             # total_number_of_results = get_total_number_of_results(keyword)
