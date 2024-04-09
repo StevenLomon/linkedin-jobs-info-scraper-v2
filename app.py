@@ -368,6 +368,12 @@ def process_staff_and_company_data(person, company_data, job_posting_id, filters
     job_title, company_name, staff_count, staff_range, company_url, company_industry, company_id = company_data
 
     first_name = last_name = row = None
+    exp_level = filters.get('Experience Level', None)
+    job_function = filters.get('Job Function', None)
+    remote_options = filters.get('Remote Options', None)
+    print(type(exp_level))
+    print(type(job_function))
+    print(type(remote_options))
     if full_name:
         first_name, last_name = split_and_clean_full_name(full_name)
     if not full_name and staff_count is not None:
@@ -375,11 +381,11 @@ def process_staff_and_company_data(person, company_data, job_posting_id, filters
         url_formatted_keywords = company_keywords.strip().replace(', ', '%20OR%20').replace(' ', '%20')
         construced_url = f"{company_url}/people/?keywords={url_formatted_keywords}"
         row = {'Hiring Team':hiring_team, 'Förnamn':construced_url, 'Efternamn':last_name, 'Bio':bio, 
-            'LinkedIn URL':linkedin_url, 'Jobbtitel som sökes':job_title, 'Jobbannons-URL':f"https://www.linkedin.com/jobs/search/?currentJobId={job_posting_id}&f_E={filters.get('Experience Level', None)}&f_F={filters.get('Job Function', None)}&f_WT={filters.get('Remote Options', None)}&geoId=105117694&keywords={keyword}&location=Sweden&origin=JOB_SEARCH_PAGE_JOB_FILTER&sortBy=R", 
+            'LinkedIn URL':linkedin_url, 'Jobbtitel som sökes':job_title, 'Jobbannons-URL':f"https://www.linkedin.com/jobs/search/?currentJobId={job_posting_id}&f_E={exp_level}&f_F={job_function}&f_WT={remote_options}&geoId=105117694&keywords={keyword}&location=Sweden&origin=JOB_SEARCH_PAGE_JOB_FILTER&sortBy=R", 
             'Företag':company_name, 'Antal anställda':staff_range, 'Företagsindustri':company_industry, 'Företags-URL':company_url}
     else:
         row = {'Hiring Team':hiring_team, 'Förnamn':first_name, 'Efternamn':last_name, 'Bio':bio, 
-            'LinkedIn URL':linkedin_url, 'Jobbtitel som sökes':job_title, 'Jobbannons-URL':f"https://www.linkedin.com/jobs/search/?currentJobId={job_posting_id}&f_E={filters.get('Experience Level', None)}&f_F={filters.get('Job Function', None)}&f_WT={filters.get('Remote Options', None)}&geoId=105117694&keywords={keyword}&location=Sweden&origin=JOB_SEARCH_PAGE_JOB_FILTER&sortBy=R", 
+            'LinkedIn URL':linkedin_url, 'Jobbtitel som sökes':job_title, 'Jobbannons-URL':f"https://www.linkedin.com/jobs/search/?currentJobId={job_posting_id}&f_E={exp_level}&f_F={job_function}&f_WT={remote_options}&geoId=105117694&keywords={keyword}&location=Sweden&origin=JOB_SEARCH_PAGE_JOB_FILTER&sortBy=R", 
             'Företag':company_name, 'Antal anställda':staff_range, 'Företagsindustri':company_industry, 'Företags-URL':company_url}
     return row
 
