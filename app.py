@@ -6,6 +6,21 @@ from io import BytesIO
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from itertools import cycle
 
+def extract_filters_from_url(linkedin_url):
+    params_dict = {}
+    experience_level_match = re.search(r'f_E=(.*?)&', linkedin_url)
+    job_function_match = re.search(r'f_F=(.*?)&', linkedin_url)
+    remote_options_match = re.search(r'f_WT=(.*?)&', linkedin_url)
+    
+    if experience_level_match:
+        params_dict["Experience Level"] = experience_level_match.group(1)
+    if job_function_match:
+        params_dict["Job Function"] = job_function_match.group(1)
+    if remote_options_match:
+        params_dict["Remote Options"] = remote_options_match.group(1)
+    
+    return params_dict
+
 def get_total_number_of_results(keyword, max_retries=2):
     api_request_url = f"https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollectionLite-67&count=25&q=jobSearch&query=(origin:SWITCH_SEARCH_VERTICAL,keywords:{keyword},spellCorrectionEnabled:true)&start=0"    
         
@@ -37,6 +52,40 @@ def get_total_number_of_results(keyword, max_retries=2):
             print(f"Request failed: {e}")
             time.sleep(random.randint(3,5))
     return None     
+
+def get_total_number_of_results_with_filters_applied(keyword, filters, max_retries=2):
+    exp_level = filters.get('Experience Level', None)
+    job_function = filters.get('Job Function', None)
+    remote_options = filters.get('Remote Options', None)
+    api_request_url = f"https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollection-203&count=25&q=jobSearch&query=(origin:JOB_SEARCH_PAGE_JOB_FILTER,keywords:{keyword},locationUnion:(geoId:105117694),selectedFilters:(sortBy:List(R),experience:List({exp_level}),function:List({job_function}),workplaceType:List({remote_options})),spellCorrectionEnabled:true)&start=0"    
+        
+    payload = {}
+    headers = {
+    'cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTA0MTk0MzU7MjswMjE2GFD4tGaA955A7K5M9w3OxKao0REV7R8R3/LDZ/ZVJQ==; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; li_alerts=e30=; g_state={"i_l":0}; timezone=Europe/Stockholm; li_theme=light; li_theme_set=app; _guid=9d344ac1-8a69-44f0-ba51-4e8884d4ccac; li_sugr=6fadc81f-40bf-4c11-9bc8-f36f95783541; _gcl_au=1.1.308589430.1710419664; aam_uuid=16424388958969701103162659259461292262; dfpfpt=2585905f65d4454db4b2923a3ee8bc24; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; visit=v=1&M; AMCVS_14215E3D5995C57C0A495C55%40AdobeOrg=1; lang=v=2&lang=en-us; li_at=AQEDASvMh7YD9s79AAABjqiLGqYAAAGOzJeepk0AeYx2DWyrkdJ2zOVnqqljd2pif0w70vXt5CAmfT-Fzviq450QuPbnNpN17uHRhNTjn38eeZfAzJg70FJChZAL8U0ElXl--_qooC9a45fdzqkaU7Sv; liap=true; JSESSIONID="ajax:2715582253737539260"; fid=AQGGZkefIBEqkQAAAY60LAA4mM5oZFxAG8z6r5pE4YEOdTzQoDs-JocwV7bLY7HgO2h61ROGT5IBWw; AnalyticsSyncHistory=AQJWOUjJvpJkRAAAAY7CLQ2MO0uZ7v8o1Ay0Tx0TNBAPsGD3eyXhOzenFLpnmB6Ap7B1dXneV14SR9o5_LWfPw; lms_ads=AQGvFRmdXc3nFgAAAY7CLQ930pNlsuEEd6qmT1NprC4dbhs6eJlazHv78G9RFtv4UkXnzoLkK3naFkZLOY8Hxd-ukkdlpis7; lms_analytics=AQGvFRmdXc3nFgAAAY7CLQ930pNlsuEEd6qmT1NprC4dbhs6eJlazHv78G9RFtv4UkXnzoLkK3naFkZLOY8Hxd-ukkdlpis7; fptctx2=taBcrIH61PuCVH7eNCyH0MJojnuUODHcZ6x9WoxhgCkAr9en60wAbfeXvyW5bYQhcX76e9lzuPfcckEKYDk1omjn%252fBbajvM3A%252f0ra5KWWbn6CpB5ts0e8OrCs%252bDiqyP2v4aXF1Cod4M2QlHSbNcvq1PYDtYG5vvJg7UyHtY0nIdnE4bk87VUSwtQMAbVo9uI4gY%252fKUiGszEwGPyi%252bCglInDpAFdqIYrfcgmTAFrP%252bftTOelAFAKcwkN%252bt8SrtSHog01UKCouJO6zQBwyHwZnRcPXG6M5Pm4wW9TSVHCX9JSs2dTV%252bZ3f7zM13yQZQrUonakXrE%252fjRVFN7seJPTrWaSpKFu5jyjDP5MBBrv0YHp0%253d; li_mc=MTsyMTsxNzEyNjU4NDQ3OzI7MDIxfWdQ65/zccdtwFzqY9gkdKAiebV1j4geoGbIEtE13dU=; AMCV_14215E3D5995C57C0A495C55%40AdobeOrg=-637568504%7CMCIDTS%7C19823%7CMCMID%7C15864482448327108373110627159475528493%7CMCAAMLH-1713263589%7C6%7CMCAAMB-1713263589%7C6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y%7CMCOPTOUT-1712665989s%7CNONE%7CMCCIDH%7C-1259936587%7CvVersion%7C5.1.1; __cf_bm=jEGtQRVREBPbbuP1wFNKI5cSSlwB7xI7BgoP7n13Y.Q-1712658794-1.0.1.1-vEIz78gyXlSEqu2rG1j1etR91gpGGt.Eg5RWQac5Hhc9a1Ukr9szHXW7VkU3_Lx0f6K.ejNl_gw0z4UInBJvQQ; UserMatchHistory=AQK5Lna2QT005gAAAY7Ca0dkNFfPAmd3-IaaRf_cvT68LFjsrPqSAghTNsWjBukoigRVYg_myk0Zdu-MK3-FrI06PNajZcEvG2jWqvVdzRp3DEZ_faWwJIdW_CEQ3iWtbtMcauETW3imHT1KSMkmf_8gv4BceoycwWpzwrT418iYKLCRkpjX93SZhTPj1Vqy9QZG2qo3B2CPZCLlwneAHv8NHbDynJOUPkve4D5QYCWxmvNcpEh1tlLh5xZnXeiHXH7W95uNJdBFqeENoeSyR8Gu49u5DyJO8h8ScHTnaM4Ah-Q7KWi3IWXLw1TwBOskLmD7JT0; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4217:u=255:x=1:i=1712658796:t=1712723460:v=2:sig=AQETTGyjZUtL2tV7rmm3RUcqmjq_RNK_"; sdsc=22%3A1%2C1712658860137%7EJAPP%2C0XhroaZBIy9Dq4BsAFy0Wz4IH7ig%3D; bcookie="v=2&70aaf49d-ed55-4b5c-8362-d0eba01b2555"; li_gc=MTswOzE3MTIzMjQ1NDQ7MjswMjH7F5RtGOB+6km5SD86xeRCXtAv1pzxFaZgc9eOZ6nlGQ==; li_mc=MTsyMTsxNzEyNjQ2NzAwOzI7MDIxRsRcTA3KM/fTlfOMTRndKrxbROAO4ESl6m8zxAs5DZM=; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4217:u=255:x=1:i=1712637060:t=1712723460:v=2:sig=AQHmmCZjH0yxdvDtucEr8JRATpGvkhQx"',
+    'csrf-token': 'ajax:2715582253737539260',
+    'sec-fetch-mode': 'cors'
+    }
+
+    total = None
+    for attempt in range(max_retries):
+        try:
+            response = requests.request("GET", api_request_url, headers=headers, data=payload)
+            if response.status_code == 200:
+                data = response.json()
+                paging = data.get('paging', {})
+                if paging:
+                    total = paging.get('total')
+                
+                if isinstance(total, int):
+                    return total
+            else:
+                time.sleep(random.randint(3,5))
+                continue
+
+        except requests.exceptions.RequestException as e:
+            print(f"Request failed: {e}")
+            time.sleep(random.randint(3,5))
+    return None   
 
 # We can only fetch 100 at a time
 def split_total_into_batches_of_100(total):
@@ -163,7 +212,7 @@ def extract_company_info(job_posting_id, max_retries=2):
                     .get('companyResolutionResult', {})
                 company_name = companyResolutionResult.get('name', None)
                 staff_count = companyResolutionResult.get('staffCount', None)
-                print(f"Staff count straight from API: {staff_count}")
+
                 staff_range_lower = companyResolutionResult.get('staffCountRange', {}).get('start', None)
                 staff_range_upper = companyResolutionResult.get('staffCountRange', {}).get('end', None)
                 if staff_range_lower is not None and staff_range_upper is not None:
@@ -257,7 +306,6 @@ def hiring_person_or_not(job_posting_id, staff_threshold, under_threshold_keywor
         return [(hiring_team, full_name, bio, linkedin_url)]
     else:
         job_title, company_name, staff_count, staff_range, company_url, company_industry, companyID = extract_company_info(job_posting_id)
-        print(f"Staff count inside hiring_person_or_not for comparison with threshold: {staff_count}")
 
         if staff_count:
             company_keywords = under_threshold_keywords if staff_count <= staff_threshold else over_threshold_keywords    
@@ -312,7 +360,7 @@ def main(keyword, batches, staff_threshold, under_threshold_keywords, over_thres
 def process_staff_and_company_data(person, company_data, job_posting_id):
     hiring_team, full_name, bio, linkedin_url = person
     job_title, company_name, staff_count, staff_range, company_url, company_industry, company_id = company_data
-    print(f"Staff count when entering the DataFrame: {staff_count}")
+
     first_name = last_name = row = None
     if full_name:
         first_name, last_name = split_and_clean_full_name(full_name)
@@ -407,38 +455,6 @@ under_threshold_keywords = st.text_input('anställda, sök företaget efter (sep
 over_threshold_keywords = st.text_input('Om det har mer, sök företaget efter: (separera keywords med kommatecken)', '')
 # max_people_per_company = st.number_input('Max antal anställda per företag som ska med i resultatet om det inte finns Hiring Team:', min_value=1, value=2, step=1, format="%d")
 max_people_per_company = 2
-def create_checkboxes(filter_dict, title):
-    selected_values = []
-    st.write(title)
-    # Adjust the number of columns based on the title
-    if title == "Job Function":
-        num_cols = 5
-    elif title == "Experience Level":
-        num_cols = 3
-    else:
-        num_cols = len(filter_dict)
-    cols = st.columns(num_cols)
-
-    # Use itertools.cycle to cycle through the columns
-    cols_cycle = cycle(cols)
-    
-    for key, value in filter_dict.items():
-        col = next(cols_cycle)  # Get the next column from the cycle
-        if col.checkbox(key):  # Create a checkbox in the column
-            selected_values.append(value)
-    
-    return selected_values
-
-# Call the function for each dictionary and collect selected items
-selected_job_functions = create_checkboxes(job_function_filter, "Job Function")
-selected_experience_levels = create_checkboxes(experience_level_filter, "Experience Level")
-selected_remote_options = create_checkboxes(remote_filter, "Remote Options")
-
-# Example usage of the selected items
-if st.button("Print Selected Values"):
-    st.write("Selected Job Functions:", selected_job_functions)
-    st.write("Selected Experience Levels:", selected_experience_levels)
-    st.write("Selected Remote Options:", selected_remote_options)
 
 # Radio button to choose the file format
 file_format = st.radio("Välj filformat:", ('csv', 'xlsx'))
@@ -450,8 +466,12 @@ if st.button('Generera fil'):
             keyword_search = re.search(r'keywords=([^&]+)', linkedin_job_url)
             keyword = keyword_search.group(1) if keyword_search else None
 
+            filters = extract_filters_from_url(linkedin_job_url)
+            print(f"Filters: {filters}")
+
             start_time = time.time()
-            total_number_of_results = get_total_number_of_results(keyword)
+            # total_number_of_results = get_total_number_of_results(keyword)
+            total_number_of_results = get_total_number_of_results_with_filters_applied(keyword, filters)
 
             if max_results_to_check.strip():  # Checks if input is not just whitespace
                 try:
@@ -537,3 +557,38 @@ if st.button('Generera fil'):
 
 #     linkedin_jobs_df = pd.DataFrame.from_dict(results)
 #     return linkedin_jobs_df
+
+# def create_checkboxes(filter_dict, title):
+#     selected_values = []
+#     st.write(title)
+#     # Adjust the number of columns based on the title
+#     if title == "Job Function":
+#         num_cols = 5
+#     elif title == "Experience Level":
+#         num_cols = 3
+#     else:
+#         num_cols = len(filter_dict)
+#     cols = st.columns(num_cols)
+
+#     # Use itertools.cycle to cycle through the columns
+#     cols_cycle = cycle(cols)
+    
+#     for key, value in filter_dict.items():
+#         col = next(cols_cycle)  # Get the next column from the cycle
+#         if col.checkbox(key):  # Create a checkbox in the column
+#             selected_values.append(value)
+    
+#     return selected_values
+
+# # Call the function for each dictionary and collect selected items
+# selected_job_functions = create_checkboxes(job_function_filter, "Job Function")
+# selected_experience_levels = create_checkboxes(experience_level_filter, "Experience Level")
+# selected_remote_options = create_checkboxes(remote_filter, "Remote Options")
+
+# filters = {"Job Function": selected_job_functions, "Exp level": selected_experience_levels, "Remote": selected_remote_options}
+
+# # Example usage of the selected items
+# if st.button("Print Selected Values"):
+#     st.write("Selected Job Functions:", selected_job_functions)
+#     st.write("Selected Experience Levels:", selected_experience_levels)
+#     st.write("Selected Remote Options:", selected_remote_options)
