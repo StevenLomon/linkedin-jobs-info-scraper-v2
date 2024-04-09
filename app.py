@@ -137,10 +137,10 @@ def fetch_job_posting_ids(keyword, filters, batch, max_retries=2):
             time.sleep(random.randint(3,5))
     return job_posting_ids_list #Return the list, even if its empty
 
-def extract_all_job_posting_ids(keyword, batches):
+def extract_all_job_posting_ids(keyword, filters, batches):
     job_posting_ids = []
     with ThreadPoolExecutor(max_workers=8) as executor:
-        futures = [executor.submit(fetch_job_posting_ids, keyword, batch) for batch in batches]
+        futures = [executor.submit(fetch_job_posting_ids, keyword, filters, batch) for batch in batches]
         for future in as_completed(futures):
             job_posting_ids.extend(future.result())
     return job_posting_ids
@@ -318,8 +318,8 @@ def hiring_person_or_not(job_posting_id, staff_threshold, under_threshold_keywor
         else:
             return []
 
-def main(keyword, batches, staff_threshold, under_threshold_keywords, over_threshold_keywords, max_people_per_company, max_workers=5):
-    all_job_posting_ids = extract_all_job_posting_ids(keyword, batches)
+def main(keyword, filters, batches, staff_threshold, under_threshold_keywords, over_threshold_keywords, max_people_per_company, max_workers=5):
+    all_job_posting_ids = extract_all_job_posting_ids(keyword, filters, batches)
     print(f"All job posting ids: {all_job_posting_ids}")
     print(f"Length of all job postings: {len(all_job_posting_ids)}")
 
@@ -505,7 +505,7 @@ if st.button('Generera fil'):
             batches = split_total_into_batches_of_100(total_number_of_results)
             print(f"Splitting {total_number_of_results} in batches: {batches}")
 
-            results = main(keyword, batches, staff_threshold, under_threshold_keywords, over_threshold_keywords, int(max_people_per_company))
+            results = main(keyword, filters, batches, staff_threshold, under_threshold_keywords, over_threshold_keywords, int(max_people_per_company))
             end_time = time.time()
 
             print(f"Done! Length of results: {len(results)}")
