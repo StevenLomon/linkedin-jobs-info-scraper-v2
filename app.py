@@ -308,6 +308,28 @@ def main(keyword, batches, staff_threshold, under_threshold_keywords, over_thres
     
     return grouped_results
 
+def process_staff_and_company_data(person, company_data, job_posting_id):
+    hiring_team, full_name, bio, linkedin_url = person
+    job_title, company_name, staff_count, staff_range, company_url, company_industry, company_id = company_data
+    print(f"Staff count when entering the DataFrame: {staff_count}")
+    first_name = last_name = row = None
+    if full_name:
+        first_name, last_name = split_and_clean_full_name(full_name)
+    if not full_name and staff_count is not None:
+        company_keywords = under_threshold_keywords if staff_count <= staff_threshold else over_threshold_keywords
+        url_formatted_keywords = company_keywords.strip().replace(', ', '%20OR%20').replace(' ', '%20')
+        construced_url = f"{company_url}/people/?keywords={url_formatted_keywords}"
+        row = {'Hiring Team':hiring_team, 'Förnamn':construced_url, 'Efternamn':last_name, 'Bio':bio, 
+            'LinkedIn URL':linkedin_url, 'Jobbtitel som sökes':job_title, 'Jobbannons-URL':f"https://www.linkedin.com/jobs/search/?currentJobId={job_posting_id}&geoId=105117694&keywords={keyword}&location=Sweden", 
+            'Företag':company_name, 'Antal anställda':staff_count, 'Anställda interall':staff_range, 
+            'Företagsindustri':company_industry, 'Företags-URL':company_url}
+    else:
+        row = {'Hiring Team':hiring_team, 'Förnamn':first_name, 'Efternamn':last_name, 'Bio':bio, 
+            'LinkedIn URL':linkedin_url, 'Jobbtitel som sökes':job_title, 'Jobbannons-URL':f"https://www.linkedin.com/jobs/search/?currentJobId={job_posting_id}&geoId=105117694&keywords={keyword}&location=Sweden", 
+            'Företag':company_name, 'Antal anställda':staff_count, 'Anställda interall':staff_range, 
+            'Företagsindustri':company_industry, 'Företags-URL':company_url}
+    return row
+
 def process_result(result):
     rows = []
 
@@ -319,60 +341,26 @@ def process_result(result):
     print(f"Company data: {company_data}")
     print(f"staff data: {staff_data}")
 
-    job_title, company_name, staff_count, staff_range, company_url, company_industry, company_id = company_data
-    print(f"Staff count when entering the DataFrame: {staff_count}")
-
     first_person = staff_data[0]
-    hiring_team, full_name, bio, linkedin_url = first_person
+    row = process_staff_and_company_data(first_person, company_data, job_posting_id)
+    rows.append(row)
+    
+    if len(staff_data) > 1:
+        second_person = staff_data[1]
+        row = process_staff_and_company_data(second_person, company_data, job_posting_id)
+        rows.append(row)
+    return rows
 
-    row = {'Hiring Team':[], 'Förnamn':[], 'Efternamn':[], 'Bio':[], 'LinkedIn URL':[], 'Jobbtitel som sökes':[], 'Jobbannons-URL':[], 'Företag':[], 'Antal anställda':[], 'Anställda interall':[], 'Företagsindustri':[], 'Företags-URL':[]}
-
-def turn_grouped_results_into_df(grouped_results):
-    results = {'Hiring Team':[], 'Förnamn':[], 'Efternamn':[], 'Bio':[], 'LinkedIn URL':[], 'Jobbtitel som sökes':[], 'Jobbannons-URL':[], 'Företag':[], 'Antal anställda':[], 'Anställda interall':[], 'Företagsindustri':[], 'Företags-URL':[]}
-
-    for result in grouped_results:
-        job_posting_id = result[0]
-        if isinstance(result[1][1], list): # staff data will always be a list
-            company_data, staff_data = result[1]
-        else:
-            staff_data, company_data = result[1]
-
-        print(f"Company data: {company_data}")
-        print(f"staff data: {staff_data}")
-
-        job_title, company_name, staff_count, staff_range, company_url, company_industry, company_id = company_data
-        print(f"Staff count when entering the DataFrame: {staff_count}")
-
-        for person in staff_data:
-            hiring_team, full_name, bio, linkedin_url = person
-        
-            results['Hiring Team'].append(hiring_team)
-            if full_name:
-                first_name, last_name = split_and_clean_full_name(full_name)
-                results['Förnamn'].append(first_name)
-                results['Efternamn'].append(last_name)
-            else:
-                results['Efternamn'].append(None)
-                if staff_count:
-                    company_keywords = under_threshold_keywords if staff_count <= staff_threshold else over_threshold_keywords
-                    url_formatted_keywords = company_keywords.strip().replace(', ', '%20OR%20').replace(' ', '%20')
-                    construced_url = f"{company_url}/people/?keywords={url_formatted_keywords}"
-                    results['Förnamn'].append(construced_url)
-                else:
-                    results['Förnamn'].append(None)
-            
-            results['Bio'].append(bio)
-            results['LinkedIn URL'].append(linkedin_url)
-            results['Jobbtitel som sökes'].append(job_title)
-            results['Jobbannons-URL'].append(f"https://www.linkedin.com/jobs/search/?currentJobId={job_posting_id}&geoId=105117694&keywords={keyword}&location=Sweden")
-            results['Företag'].append(company_name)
-            results['Antal anställda'].append(staff_count)
-            results['Anställda interall'].append(staff_range)
-            results['Företagsindustri'].append(company_industry)
-            results['Företags-URL'].append(company_url)
-
-    linkedin_jobs_df = pd.DataFrame.from_dict(results)
-    return linkedin_jobs_df
+def transform_grouped_results_into_df_parallel(grouped_results):
+    processed_lists = []
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        # Execute process_result for each result in parallel
+        for processed_result in executor.map(process_result, grouped_results):
+            # processed_result is a list of dictionaries (rows)
+            processed_lists.extend(processed_result)  # Extend the master list with these rows
+    
+    # Now processed_lists contains all rows as dictionaries; convert it to a DataFrame
+    return pd.DataFrame(processed_lists)
 
 def generate_csv(dataframe, result_name):
     if result_name.endswith('.csv'):
@@ -450,7 +438,7 @@ if st.button('Generera fil'):
 
             print(f"Done! Length of results: {len(results)}")
             st.text(f"Done! Tog info från {total_number_of_results} annonser på {convert_seconds_to_minutes_and_seconds(end_time - start_time)} minuter")
-            scraped_data_df = turn_grouped_results_into_df(results)
+            scraped_data_df = transform_grouped_results_into_df_parallel(results)
 
             if file_format == 'csv':
                 csv_file = generate_csv(scraped_data_df, result_name)
@@ -463,3 +451,50 @@ if st.button('Generera fil'):
                 st.success(f'Excel-file genererar: {result_name}.xlsx')
         else:
             st.error('Please enter a valid LinkedIn URL.')
+
+# def turn_grouped_results_into_df(grouped_results):
+#     results = {'Hiring Team':[], 'Förnamn':[], 'Efternamn':[], 'Bio':[], 'LinkedIn URL':[], 'Jobbtitel som sökes':[], 'Jobbannons-URL':[], 'Företag':[], 'Antal anställda':[], 'Anställda interall':[], 'Företagsindustri':[], 'Företags-URL':[]}
+
+#     for result in grouped_results:
+#         job_posting_id = result[0]
+#         if isinstance(result[1][1], list): # staff data will always be a list
+#             company_data, staff_data = result[1]
+#         else:
+#             staff_data, company_data = result[1]
+
+#         print(f"Company data: {company_data}")
+#         print(f"staff data: {staff_data}")
+
+#         job_title, company_name, staff_count, staff_range, company_url, company_industry, company_id = company_data
+#         print(f"Staff count when entering the DataFrame: {staff_count}")
+
+#         for person in staff_data:
+#             hiring_team, full_name, bio, linkedin_url = person
+        
+#             results['Hiring Team'].append(hiring_team)
+#             if full_name:
+#                 first_name, last_name = split_and_clean_full_name(full_name)
+#                 results['Förnamn'].append(first_name)
+#                 results['Efternamn'].append(last_name)
+#             else:
+#                 results['Efternamn'].append(None)
+#                 if staff_count:
+#                     company_keywords = under_threshold_keywords if staff_count <= staff_threshold else over_threshold_keywords
+#                     url_formatted_keywords = company_keywords.strip().replace(', ', '%20OR%20').replace(' ', '%20')
+#                     construced_url = f"{company_url}/people/?keywords={url_formatted_keywords}"
+#                     results['Förnamn'].append(construced_url)
+#                 else:
+#                     results['Förnamn'].append(None)
+            
+#             results['Bio'].append(bio)
+#             results['LinkedIn URL'].append(linkedin_url)
+#             results['Jobbtitel som sökes'].append(job_title)
+#             results['Jobbannons-URL'].append(f"https://www.linkedin.com/jobs/search/?currentJobId={job_posting_id}&geoId=105117694&keywords={keyword}&location=Sweden")
+#             results['Företag'].append(company_name)
+#             results['Antal anställda'].append(staff_count)
+#             results['Anställda interall'].append(staff_range)
+#             results['Företagsindustri'].append(company_industry)
+#             results['Företags-URL'].append(company_url)
+
+#     linkedin_jobs_df = pd.DataFrame.from_dict(results)
+#     return linkedin_jobs_df
