@@ -168,9 +168,9 @@ def extract_company_info(job_posting_id, max_retries=2):
                 if staff_range_lower is not None and staff_range_upper is not None:
                     staff_range = f"{staff_range_lower} - {staff_range_upper}"
                 elif staff_range_lower is not None:
-                    staff_range = f"Åtminstone {staff_range_lower}"
+                    staff_range = f"{staff_range_lower}+"
                 elif staff_range_upper is not None:
-                    staff_range = f"Upp till {staff_range_upper}"
+                    staff_range = f"<{staff_range_upper}"
                 else:
                     staff_range = "Okänt"
 
@@ -321,13 +321,11 @@ def process_staff_and_company_data(person, company_data, job_posting_id):
         construced_url = f"{company_url}/people/?keywords={url_formatted_keywords}"
         row = {'Hiring Team':hiring_team, 'Förnamn':construced_url, 'Efternamn':last_name, 'Bio':bio, 
             'LinkedIn URL':linkedin_url, 'Jobbtitel som sökes':job_title, 'Jobbannons-URL':f"https://www.linkedin.com/jobs/search/?currentJobId={job_posting_id}&geoId=105117694&keywords={keyword}&location=Sweden", 
-            'Företag':company_name, 'Antal anställda':staff_count, 'Anställda interall':staff_range, 
-            'Företagsindustri':company_industry, 'Företags-URL':company_url}
+            'Företag':company_name, 'Antal anställda':staff_range, 'Företagsindustri':company_industry, 'Företags-URL':company_url}
     else:
         row = {'Hiring Team':hiring_team, 'Förnamn':first_name, 'Efternamn':last_name, 'Bio':bio, 
             'LinkedIn URL':linkedin_url, 'Jobbtitel som sökes':job_title, 'Jobbannons-URL':f"https://www.linkedin.com/jobs/search/?currentJobId={job_posting_id}&geoId=105117694&keywords={keyword}&location=Sweden", 
-            'Företag':company_name, 'Antal anställda':staff_count, 'Anställda interall':staff_range, 
-            'Företagsindustri':company_industry, 'Företags-URL':company_url}
+            'Företag':company_name, 'Antal anställda':staff_range, 'Företagsindustri':company_industry, 'Företags-URL':company_url}
     return row
 
 def process_result(result):
@@ -386,6 +384,8 @@ def convert_seconds_to_minutes_and_seconds(seconds):
     return '%02d:%02d' % (min, sec)
 
 ## STREAMLIT CODE
+job_function_dict = {'Business Development':'bd', 'Sales':'sale'}
+
 st.title('LinkedIn Job search URL to CSV Generator V2')
 st.markdown('Jobbar på att få det att funka 100% 🛠️ Just nu är det hårdkodat att den kollar efter max 2 personer per företag')
 st.markdown(f'Sample URL: https://www.linkedin.com/jobs/search/?currentJobId=3836861341&keywords=sem%20seo&origin=SWITCH_SEARCH_VERTICAL')
