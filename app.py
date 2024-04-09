@@ -373,6 +373,7 @@ def process_staff_and_company_data(person, company_data, job_posting_id, filters
     job_title, company_name, staff_count, staff_range, company_url, company_industry, company_id = company_data
 
     first_name = last_name = row = None
+    print(f"Filters: {filters}")
     print(f"Type of filters: {type(filters)}")
     exp_level = filters.get('Experience Level', None)
     job_function = filters.get('Job Function', None)
