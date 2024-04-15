@@ -35,11 +35,13 @@ def get_total_number_of_results(keyword, max_retries=2):
     for attempt in range(max_retries):
         try:
             response = requests.request("GET", api_request_url, headers=headers, data=payload)
+            print(f"Getting total amount API request response status code: {response.status_code}")
             if response.status_code == 200:
                 data = response.json()
                 paging = data.get('data', {}).get('paging', {})
                 if paging:
                     total = paging.get('total')
+                    print(f"Total in the API call function: {total}")
                 
                 if isinstance(total, int):
                     return total
