@@ -56,7 +56,6 @@ def get_total_number_of_results_with_filters_applied(keyword, filters, max_retri
     exp_level = filters.get('Experience Level', None)
     job_function = filters.get('Job Function', None)
     remote_options = filters.get('Remote Options', None)
-    # api_request_url = f"https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollection-203&count=25&q=jobSearch&query=(origin:JOB_SEARCH_PAGE_JOB_FILTER,keywords:{keyword},locationUnion:(geoId:105117694),selectedFilters:(sortBy:List(R),experience:List({exp_level}),function:List({job_function}),workplaceType:List({remote_options})),spellCorrectionEnabled:true)&start=0"    
     api_request_url = f"https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollectionLite-71&count=7&q=jobSearch&query=(origin:JOB_SEARCH_PAGE_JOB_FILTER,keywords:{keyword},locationUnion:(geoId:105117694),selectedFilters:(sortBy:List(R),experience:List({exp_level}),function:List({job_function}),workplaceType:List({remote_options})),spellCorrectionEnabled:true)"
     payload = {}
     headers = {
