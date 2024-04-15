@@ -4,7 +4,6 @@ import streamlit as st
 from rich import print, print_json
 from io import BytesIO
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from itertools import cycle
 
 def extract_filters_from_url(linkedin_url):
     params_dict = {}
