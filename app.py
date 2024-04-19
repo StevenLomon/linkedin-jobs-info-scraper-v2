@@ -519,7 +519,7 @@ if st.button('Generera fil'):
             results = main(linkedin_keyword, linkedin_filters, batches, staff_threshold, under_threshold_keywords, over_threshold_keywords, int(max_people_per_company))
             end_time = time.time()
             if results == 0:
-                st.error("API status error")
+                st.error("API status error. Try again later")
             else:
                 print(f"Done! Length of results: {len(results)}")
                 st.text(f"Done! Tog info från {total_number_of_results} annonser på {convert_seconds_to_minutes_and_seconds(end_time - start_time)} minuter")
