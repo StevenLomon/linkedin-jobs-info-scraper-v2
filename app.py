@@ -5,11 +5,11 @@ from rich import print, print_json
 from io import BytesIO
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-def extract_filters_from_url(linkedin_url):
+def extract_filters_from_url(url):
     params_dict = {}
-    experience_level_match = re.search(r'f_E=(.*?)&', linkedin_url)
-    job_function_match = re.search(r'f_F=(.*?)&', linkedin_url)
-    remote_options_match = re.search(r'f_WT=(.*?)&', linkedin_url)
+    experience_level_match = re.search(r'f_E=(.*?)&', url)
+    job_function_match = re.search(r'f_F=(.*?)&', url)
+    remote_options_match = re.search(r'f_WT=(.*?)&', url)
     
     if experience_level_match:
         params_dict["Experience Level"] = experience_level_match.group(1)
@@ -20,37 +20,37 @@ def extract_filters_from_url(linkedin_url):
     
     return params_dict
 
-def get_total_number_of_results(keyword, max_retries=2):
-    api_request_url = f"https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollectionLite-67&count=25&q=jobSearch&query=(origin:SWITCH_SEARCH_VERTICAL,keywords:{keyword},spellCorrectionEnabled:true)&start=0"    
+# def get_total_number_of_results(keyword, max_retries=2):
+#     api_request_url = f"https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollectionLite-67&count=25&q=jobSearch&query=(origin:SWITCH_SEARCH_VERTICAL,keywords:{keyword},spellCorrectionEnabled:true)&start=0"    
         
-    payload = {}
-    headers = {
-        'accept': 'application/vnd.linkedin.normalized+json+2.1',
-        'cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTA0MTk0MzU7MjswMjE2GFD4tGaA955A7K5M9w3OxKao0REV7R8R3/LDZ/ZVJQ==; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; li_alerts=e30=; g_state={"i_l":0}; timezone=Europe/Stockholm; li_theme=light; li_theme_set=app; _guid=9d344ac1-8a69-44f0-ba51-4e8884d4ccac; li_sugr=6fadc81f-40bf-4c11-9bc8-f36f95783541; _gcl_au=1.1.308589430.1710419664; aam_uuid=16424388958969701103162659259461292262; dfpfpt=2585905f65d4454db4b2923a3ee8bc24; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; visit=v=1&M; AMCVS_14215E3D5995C57C0A495C55%40AdobeOrg=1; AnalyticsSyncHistory=AQInqKM9VjeJfgAAAY6jDr95ykAKgdVEJ-lmi2hFEpuwpHs0GW_s9vj-G4Uw6j1j_pUJJhZMGdSj03dRsS-GKQ; lms_ads=AQEPbpVkVUBMJwAAAY6jDsDdSL3Mw1m_OduZrR3hlmqPxRHRs1Ajcc5Zo_Z8pOj-Kl3vtbYD-sa69Co_lrctHDJKkWtAjACm; lms_analytics=AQEPbpVkVUBMJwAAAY6jDsDdSL3Mw1m_OduZrR3hlmqPxRHRs1Ajcc5Zo_Z8pOj-Kl3vtbYD-sa69Co_lrctHDJKkWtAjACm; AMCV_14215E3D5995C57C0A495C55%40AdobeOrg=-637568504%7CMCIDTS%7C19817%7CMCMID%7C15864482448327108373110627159475528493%7CMCAAMLH-1712823944%7C6%7CMCAAMB-1712823944%7C6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y%7CMCOPTOUT-1712226344s%7CNONE%7CMCCIDH%7C-1259936587%7CvVersion%7C5.1.1; fptctx2=taBcrIH61PuCVH7eNCyH0MJojnuUODHcZ6x9WoxhgCkAr9en60wAbfeXvyW5bYQhcX76e9lzuPfcckEKYDk1omjn%252fBbajvM3A%252f0ra5KWWbn6CpB5ts0e8OrCs%252bDiqyP2v4aXF1Cod4M2QlHSbNcvqxsjRiMumDMdY2cZBC7rnBcwKqNM68r3TpZblRKHzhjqTvmVAWbcHGdsb5IwTFqJY%252fMUYh2Qg2S1xLvrOKsF819j5MizM%252fQkmqKNoUidY7bXjPqOzaXZfqS9qrp55bj79ludUr4VLcG1FqHXzI%252fnEZb6Gg8pzytrnrgQFlDD4qhZPoL773oMaOt5Xu7Zj6UYRpAMqFbr0QakvMVWMSvw93s%253d; li_g_recent_logout=v=1&true; lang=v=2&lang=en-us; li_at=AQEDASvMh7YD9s79AAABjqiLGqYAAAGOzJeepk0AeYx2DWyrkdJ2zOVnqqljd2pif0w70vXt5CAmfT-Fzviq450QuPbnNpN17uHRhNTjn38eeZfAzJg70FJChZAL8U0ElXl--_qooC9a45fdzqkaU7Sv; liap=true; JSESSIONID="ajax:2715582253737539260"; li_mc=MTsyMTsxNzEyMjI0NzMyOzI7MDIxzODtaxUnhH03NiFJxX2nAcg+Zt1SBwH5NvsRAxtAtmk=; UserMatchHistory=AQKpLFT71zoM5QAAAY6olBvzmoHGZBhPQlhG2QJfDL6VSRwwrqxGU5OYng_P7oC3i705LjK1mJLCoudXGg-J0NDW4inNM4LtM90f1IHjAKPkiKBQOsqx7x89ZsAUgQ_Id-tKl50XVNuPZnAfsIVhngEuxkV6538FxYjln7OKcc94E830eKTIGCzm9sUFevFdtaLpUziPshqg7A5qPAlpsBx_ltoEvRBdb6eZSTz-zYDAogKN9htKasaYbT-8BPcjbuJVhvAmT24k4rFh07c3Zx78yU0PaPxnN68ue8yS7BangTpKgFAr9JustG_rujNj9mHuB9A; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4190:u=253:x=1:i=1712225263:t=1712308566:v=2:sig=AQGNtWMcukq66YUQAxEHE2Y2woh1guTQ"; AMCVS_14215E3D5995C57C0A495C55%40AdobeOrg=1; AMCV_14215E3D5995C57C0A495C55%40AdobeOrg=-637568504%7CMCIDTS%7C19817%7CMCMID%7C15864482448327108373110627159475528493%7CMCAAMLH-1712823944%7C6%7CMCAAMB-1712823944%7C6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y%7CMCOPTOUT-1712226344s%7CNONE%7CMCCIDH%7C-1259936587%7CvVersion%7C5.1.1; AnalyticsSyncHistory=AQInqKM9VjeJfgAAAY6jDr95ykAKgdVEJ-lmi2hFEpuwpHs0GW_s9vj-G4Uw6j1j_pUJJhZMGdSj03dRsS-GKQ; UserMatchHistory=AQKz6POJSiLt1AAAAY6okULilyFDXuLLHMAMYVzy-IMAs6Dlwno_fksOjnrsAnsZpD2MUiiNSG9oGzLrbQNa4N5CTJqA0FOGwUAH3-vZ9blAScHMZjWEElHwe_wJf4WbR02jFr8oZXirGt2T5fmAiHm_27xgkRrk0ivUr11nWHvdhh6l_QpEkhkJhkL1gItuDoH1ok95GHg4SC0rIoD7Txfw0C_QUZnpE8oMvyyScBkPIIwEBHuDwDKIW9Bd8LPkVpLt-FRLcxHxceXm1RjE12H6A3hq8Hmugcmg5htGzvIiW-lBiKnLsYGUSPowBkKdDtoFxVk; __cf_bm=46m5tvraQgrQpHhlW.Lwh9JA1WKE1fNfwR6JoACj1tc-1712225398-1.0.1.1-nXNAZAkaZHgAm2sBxkPt_tsSjFNf8oliPxZqefYXuc9oq6O6Lbwhyr7mIKovqCN1.OeYtBp7PvBct4AgSGNnUw; _gcl_au=1.1.308589430.1710419664; _guid=9d344ac1-8a69-44f0-ba51-4e8884d4ccac; aam_uuid=16424388958969701103162659259461292262; bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; dfpfpt=2585905f65d4454db4b2923a3ee8bc24; fptctx2=taBcrIH61PuCVH7eNCyH0MJojnuUODHcZ6x9WoxhgCkAr9en60wAbfeXvyW5bYQhcX76e9lzuPfcckEKYDk1omjn%252fBbajvM3A%252f0ra5KWWbn6CpB5ts0e8OrCs%252bDiqyP2v4aXF1Cod4M2QlHSbNcvqxsjRiMumDMdY2cZBC7rnBcwKqNM68r3TpZblRKHzhjqTvmVAWbcHGdsb5IwTFqJY%252fMUYh2Qg2S1xLvrOKsF819j5MizM%252fQkmqKNoUidY7bXjPqOzaXZfqS9qrp55bj79ludUr4VLcG1FqHXzI%252fnEZb6Gg8pzytrnrgQFlDD4qhZPoL773oMaOt5Xu7Zj6UYRpAMqFbr0QakvMVWMSvw93s%253d; lang=v=2&lang=en-us; li_gc=MTswOzE3MTA0MTk0MzU7MjswMjE2GFD4tGaA955A7K5M9w3OxKao0REV7R8R3/LDZ/ZVJQ==; li_mc=MTsyMTsxNzEyMjI1NDc1OzI7MDIx4g1UjJLNxrgq1LN73193ANa7nJGrX7QYtI3diLCYb2I=; li_sugr=6fadc81f-40bf-4c11-9bc8-f36f95783541; liap=true; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4190:u=253:x=1:i=1712225077:t=1712308566:v=2:sig=AQFhNZWPI_v5oL4y8oX9xLFL8a3cbxtv"; lms_ads=AQEPbpVkVUBMJwAAAY6jDsDdSL3Mw1m_OduZrR3hlmqPxRHRs1Ajcc5Zo_Z8pOj-Kl3vtbYD-sa69Co_lrctHDJKkWtAjACm; lms_analytics=AQEPbpVkVUBMJwAAAY6jDsDdSL3Mw1m_OduZrR3hlmqPxRHRs1Ajcc5Zo_Z8pOj-Kl3vtbYD-sa69Co_lrctHDJKkWtAjACm; test=cookie; visit=v=1&M; JSESSIONID="ajax:2715582253737539260"; g_state={"i_l":0}; li_alerts=e30=; li_at=AQEDASvMh7YD9s79AAABjqiLGqYAAAGOzJeepk0AeYx2DWyrkdJ2zOVnqqljd2pif0w70vXt5CAmfT-Fzviq450QuPbnNpN17uHRhNTjn38eeZfAzJg70FJChZAL8U0ElXl--_qooC9a45fdzqkaU7Sv; li_g_recent_logout=v=1&true; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; li_theme=light; li_theme_set=app; timezone=Europe/Stockholm',
-        'csrf-token': 'ajax:2715582253737539260',
-        'sec-fetch-mode': 'cors'
-    }
+#     payload = {}
+#     headers = {
+#         'accept': 'application/vnd.linkedin.normalized+json+2.1',
+#         'cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTA0MTk0MzU7MjswMjE2GFD4tGaA955A7K5M9w3OxKao0REV7R8R3/LDZ/ZVJQ==; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; li_alerts=e30=; g_state={"i_l":0}; timezone=Europe/Stockholm; li_theme=light; li_theme_set=app; _guid=9d344ac1-8a69-44f0-ba51-4e8884d4ccac; li_sugr=6fadc81f-40bf-4c11-9bc8-f36f95783541; _gcl_au=1.1.308589430.1710419664; aam_uuid=16424388958969701103162659259461292262; dfpfpt=2585905f65d4454db4b2923a3ee8bc24; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; visit=v=1&M; AMCVS_14215E3D5995C57C0A495C55%40AdobeOrg=1; AnalyticsSyncHistory=AQInqKM9VjeJfgAAAY6jDr95ykAKgdVEJ-lmi2hFEpuwpHs0GW_s9vj-G4Uw6j1j_pUJJhZMGdSj03dRsS-GKQ; lms_ads=AQEPbpVkVUBMJwAAAY6jDsDdSL3Mw1m_OduZrR3hlmqPxRHRs1Ajcc5Zo_Z8pOj-Kl3vtbYD-sa69Co_lrctHDJKkWtAjACm; lms_analytics=AQEPbpVkVUBMJwAAAY6jDsDdSL3Mw1m_OduZrR3hlmqPxRHRs1Ajcc5Zo_Z8pOj-Kl3vtbYD-sa69Co_lrctHDJKkWtAjACm; AMCV_14215E3D5995C57C0A495C55%40AdobeOrg=-637568504%7CMCIDTS%7C19817%7CMCMID%7C15864482448327108373110627159475528493%7CMCAAMLH-1712823944%7C6%7CMCAAMB-1712823944%7C6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y%7CMCOPTOUT-1712226344s%7CNONE%7CMCCIDH%7C-1259936587%7CvVersion%7C5.1.1; fptctx2=taBcrIH61PuCVH7eNCyH0MJojnuUODHcZ6x9WoxhgCkAr9en60wAbfeXvyW5bYQhcX76e9lzuPfcckEKYDk1omjn%252fBbajvM3A%252f0ra5KWWbn6CpB5ts0e8OrCs%252bDiqyP2v4aXF1Cod4M2QlHSbNcvqxsjRiMumDMdY2cZBC7rnBcwKqNM68r3TpZblRKHzhjqTvmVAWbcHGdsb5IwTFqJY%252fMUYh2Qg2S1xLvrOKsF819j5MizM%252fQkmqKNoUidY7bXjPqOzaXZfqS9qrp55bj79ludUr4VLcG1FqHXzI%252fnEZb6Gg8pzytrnrgQFlDD4qhZPoL773oMaOt5Xu7Zj6UYRpAMqFbr0QakvMVWMSvw93s%253d; li_g_recent_logout=v=1&true; lang=v=2&lang=en-us; li_at=AQEDASvMh7YD9s79AAABjqiLGqYAAAGOzJeepk0AeYx2DWyrkdJ2zOVnqqljd2pif0w70vXt5CAmfT-Fzviq450QuPbnNpN17uHRhNTjn38eeZfAzJg70FJChZAL8U0ElXl--_qooC9a45fdzqkaU7Sv; liap=true; JSESSIONID="ajax:2715582253737539260"; li_mc=MTsyMTsxNzEyMjI0NzMyOzI7MDIxzODtaxUnhH03NiFJxX2nAcg+Zt1SBwH5NvsRAxtAtmk=; UserMatchHistory=AQKpLFT71zoM5QAAAY6olBvzmoHGZBhPQlhG2QJfDL6VSRwwrqxGU5OYng_P7oC3i705LjK1mJLCoudXGg-J0NDW4inNM4LtM90f1IHjAKPkiKBQOsqx7x89ZsAUgQ_Id-tKl50XVNuPZnAfsIVhngEuxkV6538FxYjln7OKcc94E830eKTIGCzm9sUFevFdtaLpUziPshqg7A5qPAlpsBx_ltoEvRBdb6eZSTz-zYDAogKN9htKasaYbT-8BPcjbuJVhvAmT24k4rFh07c3Zx78yU0PaPxnN68ue8yS7BangTpKgFAr9JustG_rujNj9mHuB9A; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4190:u=253:x=1:i=1712225263:t=1712308566:v=2:sig=AQGNtWMcukq66YUQAxEHE2Y2woh1guTQ"; AMCVS_14215E3D5995C57C0A495C55%40AdobeOrg=1; AMCV_14215E3D5995C57C0A495C55%40AdobeOrg=-637568504%7CMCIDTS%7C19817%7CMCMID%7C15864482448327108373110627159475528493%7CMCAAMLH-1712823944%7C6%7CMCAAMB-1712823944%7C6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y%7CMCOPTOUT-1712226344s%7CNONE%7CMCCIDH%7C-1259936587%7CvVersion%7C5.1.1; AnalyticsSyncHistory=AQInqKM9VjeJfgAAAY6jDr95ykAKgdVEJ-lmi2hFEpuwpHs0GW_s9vj-G4Uw6j1j_pUJJhZMGdSj03dRsS-GKQ; UserMatchHistory=AQKz6POJSiLt1AAAAY6okULilyFDXuLLHMAMYVzy-IMAs6Dlwno_fksOjnrsAnsZpD2MUiiNSG9oGzLrbQNa4N5CTJqA0FOGwUAH3-vZ9blAScHMZjWEElHwe_wJf4WbR02jFr8oZXirGt2T5fmAiHm_27xgkRrk0ivUr11nWHvdhh6l_QpEkhkJhkL1gItuDoH1ok95GHg4SC0rIoD7Txfw0C_QUZnpE8oMvyyScBkPIIwEBHuDwDKIW9Bd8LPkVpLt-FRLcxHxceXm1RjE12H6A3hq8Hmugcmg5htGzvIiW-lBiKnLsYGUSPowBkKdDtoFxVk; __cf_bm=46m5tvraQgrQpHhlW.Lwh9JA1WKE1fNfwR6JoACj1tc-1712225398-1.0.1.1-nXNAZAkaZHgAm2sBxkPt_tsSjFNf8oliPxZqefYXuc9oq6O6Lbwhyr7mIKovqCN1.OeYtBp7PvBct4AgSGNnUw; _gcl_au=1.1.308589430.1710419664; _guid=9d344ac1-8a69-44f0-ba51-4e8884d4ccac; aam_uuid=16424388958969701103162659259461292262; bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; dfpfpt=2585905f65d4454db4b2923a3ee8bc24; fptctx2=taBcrIH61PuCVH7eNCyH0MJojnuUODHcZ6x9WoxhgCkAr9en60wAbfeXvyW5bYQhcX76e9lzuPfcckEKYDk1omjn%252fBbajvM3A%252f0ra5KWWbn6CpB5ts0e8OrCs%252bDiqyP2v4aXF1Cod4M2QlHSbNcvqxsjRiMumDMdY2cZBC7rnBcwKqNM68r3TpZblRKHzhjqTvmVAWbcHGdsb5IwTFqJY%252fMUYh2Qg2S1xLvrOKsF819j5MizM%252fQkmqKNoUidY7bXjPqOzaXZfqS9qrp55bj79ludUr4VLcG1FqHXzI%252fnEZb6Gg8pzytrnrgQFlDD4qhZPoL773oMaOt5Xu7Zj6UYRpAMqFbr0QakvMVWMSvw93s%253d; lang=v=2&lang=en-us; li_gc=MTswOzE3MTA0MTk0MzU7MjswMjE2GFD4tGaA955A7K5M9w3OxKao0REV7R8R3/LDZ/ZVJQ==; li_mc=MTsyMTsxNzEyMjI1NDc1OzI7MDIx4g1UjJLNxrgq1LN73193ANa7nJGrX7QYtI3diLCYb2I=; li_sugr=6fadc81f-40bf-4c11-9bc8-f36f95783541; liap=true; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4190:u=253:x=1:i=1712225077:t=1712308566:v=2:sig=AQFhNZWPI_v5oL4y8oX9xLFL8a3cbxtv"; lms_ads=AQEPbpVkVUBMJwAAAY6jDsDdSL3Mw1m_OduZrR3hlmqPxRHRs1Ajcc5Zo_Z8pOj-Kl3vtbYD-sa69Co_lrctHDJKkWtAjACm; lms_analytics=AQEPbpVkVUBMJwAAAY6jDsDdSL3Mw1m_OduZrR3hlmqPxRHRs1Ajcc5Zo_Z8pOj-Kl3vtbYD-sa69Co_lrctHDJKkWtAjACm; test=cookie; visit=v=1&M; JSESSIONID="ajax:2715582253737539260"; g_state={"i_l":0}; li_alerts=e30=; li_at=AQEDASvMh7YD9s79AAABjqiLGqYAAAGOzJeepk0AeYx2DWyrkdJ2zOVnqqljd2pif0w70vXt5CAmfT-Fzviq450QuPbnNpN17uHRhNTjn38eeZfAzJg70FJChZAL8U0ElXl--_qooC9a45fdzqkaU7Sv; li_g_recent_logout=v=1&true; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; li_theme=light; li_theme_set=app; timezone=Europe/Stockholm',
+#         'csrf-token': 'ajax:2715582253737539260',
+#         'sec-fetch-mode': 'cors'
+#     }
 
-    total = None
-    for attempt in range(max_retries):
-        try:
-            response = requests.request("GET", api_request_url, headers=headers, data=payload)
-            if response.status_code == 200:
-                data = response.json()
-                paging = data.get('data', {}).get('paging', {})
-                if paging:
-                    total = paging.get('total')
+#     total = None
+#     for attempt in range(max_retries):
+#         try:
+#             response = requests.request("GET", api_request_url, headers=headers, data=payload)
+#             if response.status_code == 200:
+#                 data = response.json()
+#                 paging = data.get('data', {}).get('paging', {})
+#                 if paging:
+#                     total = paging.get('total')
                 
-                if isinstance(total, int):
-                    return total
-            else:
-                time.sleep(random.randint(3,5))
-                continue
+#                 if isinstance(total, int):
+#                     return total
+#             else:
+#                 time.sleep(random.randint(3,5))
+#                 continue
 
-        except requests.exceptions.RequestException as e:
-            print(f"Request failed: {e}")
-            time.sleep(random.randint(3,5))
-    return None     
+#         except requests.exceptions.RequestException as e:
+#             print(f"Request failed: {e}")
+#             time.sleep(random.randint(3,5))
+#     return None     
 
 def get_total_number_of_results_with_filters_applied(keyword, filters, max_retries=2):
     exp_level = filters.get('Experience Level', None)
@@ -97,25 +97,30 @@ def split_total_into_batches_of_100(total):
     return batches
 
 def fetch_job_posting_ids(keyword, filters, batch, max_retries=2):
+    print(f"Keyword: {keyword}, Filters: {filters}, Batch: {batch}")
     exp_level = filters.get('Experience Level', None)
     job_function = filters.get('Job Function', None)
     remote_options = filters.get('Remote Options', None)
+    print(f"exp_level: {exp_level}, job_function: {job_function}, remote_options: {remote_options}")
+    print(type(job_function))
     start, stop = batch
     batch_size = stop - start
 
-    # api_request_url = f"https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollectionLite-67&count={batch_size}&q=jobSearch&query=(origin:SWITCH_SEARCH_VERTICAL,keywords:{keyword},spellCorrectionEnabled:true)&start={start}"
-    api_request_url = f"https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollection-203&count={batch_size}&q=jobSearch&query=(origin:JOB_SEARCH_PAGE_JOB_FILTER,keywords:{keyword},locationUnion:(geoId:105117694),selectedFilters:(sortBy:List(R),experience:List({exp_level}),function:List({job_function}),workplaceType:List({remote_options})),spellCorrectionEnabled:true)&start={start}"
+    api_request_url = f"https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollectionLite-72&count={batch_size}&q=jobSearch&query=(origin:JOB_SEARCH_PAGE_JOB_FILTER,keywords:{keyword},selectedFilters:(sortBy:List(R),experience:List({exp_level}),function:List({job_function}),workplaceType:List({remote_options})),spellCorrectionEnabled:true)&start={start}"
+    print(f"URL. {api_request_url}")
     headers = {
-        'accept': 'application/vnd.linkedin.normalized+json+2.1',
-        'cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTA0MTk0MzU7MjswMjE2GFD4tGaA955A7K5M9w3OxKao0REV7R8R3/LDZ/ZVJQ==; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; li_alerts=e30=; g_state={"i_l":0}; timezone=Europe/Stockholm; li_theme=light; li_theme_set=app; _guid=9d344ac1-8a69-44f0-ba51-4e8884d4ccac; li_sugr=6fadc81f-40bf-4c11-9bc8-f36f95783541; _gcl_au=1.1.308589430.1710419664; aam_uuid=16424388958969701103162659259461292262; dfpfpt=2585905f65d4454db4b2923a3ee8bc24; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; visit=v=1&M; AMCVS_14215E3D5995C57C0A495C55%40AdobeOrg=1; lang=v=2&lang=en-us; li_at=AQEDASvMh7YD9s79AAABjqiLGqYAAAGOzJeepk0AeYx2DWyrkdJ2zOVnqqljd2pif0w70vXt5CAmfT-Fzviq450QuPbnNpN17uHRhNTjn38eeZfAzJg70FJChZAL8U0ElXl--_qooC9a45fdzqkaU7Sv; liap=true; JSESSIONID="ajax:2715582253737539260"; fid=AQGGZkefIBEqkQAAAY60LAA4mM5oZFxAG8z6r5pE4YEOdTzQoDs-JocwV7bLY7HgO2h61ROGT5IBWw; AnalyticsSyncHistory=AQJWOUjJvpJkRAAAAY7CLQ2MO0uZ7v8o1Ay0Tx0TNBAPsGD3eyXhOzenFLpnmB6Ap7B1dXneV14SR9o5_LWfPw; lms_ads=AQGvFRmdXc3nFgAAAY7CLQ930pNlsuEEd6qmT1NprC4dbhs6eJlazHv78G9RFtv4UkXnzoLkK3naFkZLOY8Hxd-ukkdlpis7; lms_analytics=AQGvFRmdXc3nFgAAAY7CLQ930pNlsuEEd6qmT1NprC4dbhs6eJlazHv78G9RFtv4UkXnzoLkK3naFkZLOY8Hxd-ukkdlpis7; fptctx2=taBcrIH61PuCVH7eNCyH0MJojnuUODHcZ6x9WoxhgCkAr9en60wAbfeXvyW5bYQhcX76e9lzuPfcckEKYDk1omjn%252fBbajvM3A%252f0ra5KWWbn6CpB5ts0e8OrCs%252bDiqyP2v4aXF1Cod4M2QlHSbNcvq1PYDtYG5vvJg7UyHtY0nIdnE4bk87VUSwtQMAbVo9uI4gY%252fKUiGszEwGPyi%252bCglInDpAFdqIYrfcgmTAFrP%252bftTOelAFAKcwkN%252bt8SrtSHog01UKCouJO6zQBwyHwZnRcPXG6M5Pm4wW9TSVHCX9JSs2dTV%252bZ3f7zM13yQZQrUonakXrE%252fjRVFN7seJPTrWaSpKFu5jyjDP5MBBrv0YHp0%253d; li_mc=MTsyMTsxNzEyNjU4NDQ3OzI7MDIxfWdQ65/zccdtwFzqY9gkdKAiebV1j4geoGbIEtE13dU=; AMCV_14215E3D5995C57C0A495C55%40AdobeOrg=-637568504%7CMCIDTS%7C19823%7CMCMID%7C15864482448327108373110627159475528493%7CMCAAMLH-1713263589%7C6%7CMCAAMB-1713263589%7C6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y%7CMCOPTOUT-1712665989s%7CNONE%7CMCCIDH%7C-1259936587%7CvVersion%7C5.1.1; __cf_bm=jEGtQRVREBPbbuP1wFNKI5cSSlwB7xI7BgoP7n13Y.Q-1712658794-1.0.1.1-vEIz78gyXlSEqu2rG1j1etR91gpGGt.Eg5RWQac5Hhc9a1Ukr9szHXW7VkU3_Lx0f6K.ejNl_gw0z4UInBJvQQ; UserMatchHistory=AQK5Lna2QT005gAAAY7Ca0dkNFfPAmd3-IaaRf_cvT68LFjsrPqSAghTNsWjBukoigRVYg_myk0Zdu-MK3-FrI06PNajZcEvG2jWqvVdzRp3DEZ_faWwJIdW_CEQ3iWtbtMcauETW3imHT1KSMkmf_8gv4BceoycwWpzwrT418iYKLCRkpjX93SZhTPj1Vqy9QZG2qo3B2CPZCLlwneAHv8NHbDynJOUPkve4D5QYCWxmvNcpEh1tlLh5xZnXeiHXH7W95uNJdBFqeENoeSyR8Gu49u5DyJO8h8ScHTnaM4Ah-Q7KWi3IWXLw1TwBOskLmD7JT0; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4217:u=255:x=1:i=1712658796:t=1712723460:v=2:sig=AQETTGyjZUtL2tV7rmm3RUcqmjq_RNK_"; sdsc=22%3A1%2C1712658860137%7EJAPP%2C0XhroaZBIy9Dq4BsAFy0Wz4IH7ig%3D; __cf_bm=eNUzBPsOjR7iUTYi4vlso5GtTtHDLKaTX240w1YA0zY-1712683928-1.0.1.1-h19CCWzfeXCrLX.2v7HrYDJQzDSc6QhtxV..BGSl95Yha86DijfbB1hkcD2V.MQ9O0a4olkR9B1CYuVCQ6pb.Q; bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTIzMjQ1NDQ7MjswMjH7F5RtGOB+6km5SD86xeRCXtAv1pzxFaZgc9eOZ6nlGQ==; li_mc=MTsyMTsxNzEyNjgzOTI3OzI7MDIxLIcBekGOJvFYX4705hPsdkLCYfQeE6q8K8PErswiFMQ=; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4217:u=255:x=1:i=1712637060:t=1712723460:v=2:sig=AQHmmCZjH0yxdvDtucEr8JRATpGvkhQx"',
-        'csrf-token': 'ajax:2715582253737539260',
-        'sec-fetch-mode': 'cors'
-        }
+    'accept': 'application/vnd.linkedin.normalized+json+2.1',
+    'cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTA0MTk0MzU7MjswMjE2GFD4tGaA955A7K5M9w3OxKao0REV7R8R3/LDZ/ZVJQ==; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; li_alerts=e30=; g_state={"i_l":0}; timezone=Europe/Stockholm; li_theme=light; li_theme_set=app; _guid=9d344ac1-8a69-44f0-ba51-4e8884d4ccac; li_sugr=6fadc81f-40bf-4c11-9bc8-f36f95783541; _gcl_au=1.1.308589430.1710419664; aam_uuid=16424388958969701103162659259461292262; dfpfpt=2585905f65d4454db4b2923a3ee8bc24; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; visit=v=1&M; liap=true; JSESSIONID="ajax:2715582253737539260"; AnalyticsSyncHistory=AQJpWfcUFXP5iQAAAY7x6VX1oGgE6MMktoHnw1qIF83xzhnDk6e5g17fw61l_RHBegBy-dsHJ6iqi60Wkaxv4A; lms_ads=AQHgSjyO00BYDgAAAY7x6Vht2JKhxk_Fu3pfw4pyAz-Znm31IJbyXh2c1RUZTd6suZqN9CRyoQ5o46_V-ccHe4PInDicwCRL; lms_analytics=AQHgSjyO00BYDgAAAY7x6Vht2JKhxk_Fu3pfw4pyAz-Znm31IJbyXh2c1RUZTd6suZqN9CRyoQ5o46_V-ccHe4PInDicwCRL; li_at=AQEDASvMh7YEt9E5AAABjshqKboAAAGPFfXcSE0AVj1Dh-FEjTwpM4Jw2zlZE3bjTjPZxoGRph2JWMtDYv0_DivXnt_TBHLkdX18zsleL5H2Mpq1scbviswRvIK85QYwTIU5FLrqVMh0LwZaCs_G6NbN; lang=v=2&lang=en-us; AMCVS_14215E3D5995C57C0A495C55%40AdobeOrg=1; fptctx2=taBcrIH61PuCVH7eNCyH0MJojnuUODHcZ6x9WoxhgCkAr9en60wAbfeXvyW5bYQhcX76e9lzuPfcckEKYDk1omjn%252fBbajvM3A%252f0ra5KWWbn6CpB5ts0e8OrCs%252bDiqyP2v4aXF1Cod4M2QlHSbNcvq%252bfljF71dS3IUT1ewOwwOzVEGVtWkImVPo223ST3rs4b%252fVU2xBrMmG48OSrzPVTv7RisXlkeiE31yp7TZaPaa6PSL8njFWOjKrFbJWmqNQ5%252bPbY3am6FWsV75A6PzaLJVeU2MMMwXBIqh%252f78lSIFXUphUVlSvUj63t3ypyDX33TYm97LI3fzz5MyaaPnrDMySLv9SQDKjBdaeqBwfJtLlvQ%253d; li_mc=MTsyMTsxNzEzNDk4NTI4OzI7MDIx1oDUb6QA9Jq4kgb+FHlORuDzp/tXu0JIZmQN4Ap2DNQ=; UserMatchHistory=AQIeFAjVTDhqfAAAAY70eKtNo5MAqCY4MmA23-0v0w2pO5k5u25LDzJmw1Cefhq7g1VkeVhElE0T3Si2aSd6Z4g_JbJ0bgZxJ1b8xi3qdZoqTukBtJCCrleyo03DGmTE-cE4BhhoKExIBsYwkJYmrpJIY95gZ-ybAe67HQ49JV7-SGHaZoychdVVvDApq80r5c3NXrMJ3bNStnrzaLZotXoLCWQXUzLdesBtS85-aj6zQVh0ZiWlUZI_r7_z8Ci-ZhW1AI7hwPjXivclXqL8HOhrdpyRCzb4R7AKDgpPQdPAiibvB_cc02Z_SiRuZlS1PfBg4KY; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4231:u=261:x=1:i=1713498534:t=1713541985:v=2:sig=AQFEBA8rVHXF2bMCyaFyApPu8G5Y4zMi"; AMCV_14215E3D5995C57C0A495C55%40AdobeOrg=-637568504%7CMCIDTS%7C19832%7CMCMID%7C15864482448327108373110627159475528493%7CMCAAMLH-1714103337%7C6%7CMCAAMB-1714103337%7C6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y%7CMCOPTOUT-1713505737s%7CNONE%7CMCCIDH%7C-1259936587%7CvVersion%7C5.1.1; sdsc=22%3A1%2C1713498989738%7EJAPP%2C0Kxss%2BepGCGI6vxRQvUUuu5kl4zg%3D; bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTIzMjQ1NDQ7MjswMjH7F5RtGOB+6km5SD86xeRCXtAv1pzxFaZgc9eOZ6nlGQ==; li_mc=MTsyMTsxNzEzNDk5OTM3OzI7MDIx4lVvBH7Y5+OHnMIFbd2DBeeZbBNZaOI0CrCacFmOmCc=; sdsc=22%3A1%2C1713499000620%7EJAPP%2C071SDzb2InNOnl823SIddTo1Zo8A%3D; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"',
+    'csrf-token': 'ajax:2715582253737539260',
+    'sec-fetch-mode': 'cors',
+    'sec-fetch-site': 'same-origin'
+    }
 
     job_posting_ids_list = []
     for attempt in range(max_retries):
         try:
             response = requests.request("GET", api_request_url, headers=headers)
+            print(f"Response status: {response.status_code}")
             if response.status_code == 200:
                 data = response.json()
 
@@ -128,6 +133,7 @@ def fetch_job_posting_ids(keyword, filters, batch, max_retries=2):
                     job_posting_id_search = re.search(r"urn:li:fsd_jobPostingCard:\((\d+),JOB_DETAILS\)", urn)
                     if job_posting_id_search:
                         job_posting_id = job_posting_id_search.group(1)
+                        print(f"Job posting id: {job_posting_id}")
                         job_posting_ids_list.append(job_posting_id)
             else:
                 time.sleep(random.randint(3,5))
@@ -321,6 +327,8 @@ def hiring_person_or_not(job_posting_id, staff_threshold, under_threshold_keywor
 
 def main(keyword, filters, batches, staff_threshold, under_threshold_keywords, over_threshold_keywords, max_people_per_company, max_workers=5):
     all_job_posting_ids = extract_all_job_posting_ids(keyword, filters, batches)
+    if len(all_job_posting_ids) == 0:
+        return 0
     print(f"All job posting ids: {all_job_posting_ids}")
     print(f"Length of all job postings: {len(all_job_posting_ids)}")
 
@@ -367,9 +375,11 @@ def main(keyword, filters, batches, staff_threshold, under_threshold_keywords, o
             # print(f"Data pair: {data_pair}")
             grouped_results.append((job_posting, tuple(data_pair)))
     
+    if len(grouped_results) == 0:
+        return 0
     return grouped_results
 
-def process_staff_and_company_data(person, company_data, job_posting_id):
+def process_staff_and_company_data(keyword, filters, person, company_data, job_posting_id):
     hiring_team, full_name, bio, linkedin_url = person
     job_title, company_name, staff_count, staff_range, company_url, company_industry, company_id = company_data
 
@@ -476,16 +486,16 @@ if st.button('Generera fil'):
     with st.spinner('Genererar fil, ett ögonblick'):
         if linkedin_job_url:
             keyword_search = re.search(r'keywords=([^&]+)', linkedin_job_url)
-            keyword = keyword_search.group(1) if keyword_search else None
-            print(f"\nNew search! Keyword: {keyword}")
+            linkedin_keyword = keyword_search.group(1) if keyword_search else None
+            print(f"\nNew search! Keyword: {linkedin_keyword}")
 
-            filters = extract_filters_from_url(linkedin_job_url)
-            print(f"Filters: {filters}")
-            print(f"Type of filters: {type(filters)}")
+            linkedin_filters = extract_filters_from_url(linkedin_job_url)
+            print(f"Filters: {linkedin_filters}")
+            print(f"Type of filters: {type(linkedin_filters)}")
 
             start_time = time.time()
             # total_number_of_results = get_total_number_of_results(keyword)
-            total_number_of_results = get_total_number_of_results_with_filters_applied(keyword, filters)
+            total_number_of_results = get_total_number_of_results_with_filters_applied(linkedin_keyword, linkedin_filters)
 
             if max_results_to_check.strip():  # Checks if input is not just whitespace
                 try:
@@ -506,22 +516,24 @@ if st.button('Generera fil'):
             batches = split_total_into_batches_of_100(total_number_of_results)
             print(f"Splitting {total_number_of_results} in batches: {batches}")
 
-            results = main(keyword, filters, batches, staff_threshold, under_threshold_keywords, over_threshold_keywords, int(max_people_per_company))
+            results = main(linkedin_keyword, linkedin_filters, batches, staff_threshold, under_threshold_keywords, over_threshold_keywords, int(max_people_per_company))
             end_time = time.time()
+            if results == 0:
+                st.error("API status error")
+            else:
+                print(f"Done! Length of results: {len(results)}")
+                st.text(f"Done! Tog info från {total_number_of_results} annonser på {convert_seconds_to_minutes_and_seconds(end_time - start_time)} minuter")
+                scraped_data_df = transform_grouped_results_into_df_parallel(results)
 
-            print(f"Done! Length of results: {len(results)}")
-            st.text(f"Done! Tog info från {total_number_of_results} annonser på {convert_seconds_to_minutes_and_seconds(end_time - start_time)} minuter")
-            scraped_data_df = transform_grouped_results_into_df_parallel(results)
-
-            if file_format == 'csv':
-                csv_file = generate_csv(scraped_data_df, result_name)
-                with open(csv_file, "rb") as file:
-                    st.download_button(label="Ladda ner CSV", data=file, file_name=csv_file, mime='text/csv')
-                st.success(f'CSV-fil genererad: {csv_file}')
-            elif file_format == 'xlsx':
-                excel_file = generate_excel(scraped_data_df, result_name)
-                st.download_button(label="Ladda ner xlsx", data=excel_file, file_name=f"{result_name}.xlsx", mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-                st.success(f'Excel-file genererar: {result_name}.xlsx')
+                if file_format == 'csv':
+                    csv_file = generate_csv(scraped_data_df, result_name)
+                    with open(csv_file, "rb") as file:
+                        st.download_button(label="Ladda ner CSV", data=file, file_name=csv_file, mime='text/csv')
+                    st.success(f'CSV-fil genererad: {csv_file}')
+                elif file_format == 'xlsx':
+                    excel_file = generate_excel(scraped_data_df, result_name)
+                    st.download_button(label="Ladda ner xlsx", data=excel_file, file_name=f"{result_name}.xlsx", mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+                    st.success(f'Excel-file genererar: {result_name}.xlsx')
         else:
             st.error('Please enter a valid LinkedIn URL.')
 
